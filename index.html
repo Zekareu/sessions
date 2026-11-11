@@ -292,16 +292,59 @@
         <!-- Workout Duration Selector Card -->
         <div class="prison-warden-card" style="margin-top: 12px; padding: 20px;">
           <div style="font-size: 0.78rem; font-weight: 700; letter-spacing: 0.12em; color: #aaa; text-transform: uppercase; margin-bottom: 10px;">Select Session Length</div>
-          <div class="workout-duration-pills" style="display: flex; gap: 10px; width: 100%; flex-wrap: wrap;">
-            <button type="button" class="pill-select workout-duration-pill" data-workout-duration="5" style="flex: 1 1 140px; text-align: center; padding: 10px 14px;">5 MIN (Express)</button>
-            <button type="button" class="pill-select workout-duration-pill active" data-workout-duration="10" style="flex: 1 1 140px; text-align: center; padding: 10px 14px;">10 MIN (Standard)</button>
-            <button type="button" class="pill-select workout-duration-pill" data-workout-duration="15" style="flex: 1 1 140px; text-align: center; padding: 10px 14px;">15 MIN (Intensive)</button>
-            <button type="button" class="pill-select workout-duration-pill" data-workout-duration="20" style="flex: 1 1 140px; text-align: center; padding: 10px 14px;">20 MIN (Endurance)</button>
+          <div class="workout-duration-grid" role="radiogroup" aria-label="Select Session Length">
+            <div class="workout-duration-card" data-workout-duration="5" role="radio" aria-checked="false" tabindex="0">
+              <div class="workout-duration-card-head">
+                <div class="workout-duration-time-wrap">
+                  <span class="workout-duration-badge">5 MIN</span>
+                  <span class="workout-duration-tier">Express</span>
+                </div>
+                <span class="workout-duration-check">✓ Active</span>
+              </div>
+              <div class="workout-duration-card-stats">5 Exercises • 45–55 BPM • 3×15s + 30s Holds</div>
+              <p class="workout-duration-card-desc">Quick high-efficiency routine. Acclimation tempo, hold block, paced cadence drive, and finisher hold.</p>
+            </div>
+
+            <div class="workout-duration-card active" data-workout-duration="10" role="radio" aria-checked="true" tabindex="0">
+              <div class="workout-duration-card-head">
+                <div class="workout-duration-time-wrap">
+                  <span class="workout-duration-badge">10 MIN</span>
+                  <span class="workout-duration-tier">Standard</span>
+                </div>
+                <span class="workout-duration-check">✓ Active</span>
+              </div>
+              <div class="workout-duration-card-stats">7 Exercises • 45–65 BPM • 3×20s + 2×25s + 40s Holds</div>
+              <p class="workout-duration-card-desc">Balanced daily conditioning. Warmup cadence, hold block, tempo acceleration ladder, and climactic hold.</p>
+            </div>
+
+            <div class="workout-duration-card" data-workout-duration="15" role="radio" aria-checked="false" tabindex="0">
+              <div class="workout-duration-card-head">
+                <div class="workout-duration-time-wrap">
+                  <span class="workout-duration-badge">15 MIN</span>
+                  <span class="workout-duration-tier">Intensive</span>
+                </div>
+                <span class="workout-duration-check">✓ Active</span>
+              </div>
+              <div class="workout-duration-card-stats">8 Exercises • 50–70 BPM • 3×20s + 2×25s + 45s Holds</div>
+              <p class="workout-duration-card-desc">High-stamina conditioning. Extended tempo drive, post-cadence hold, cadence surge, and mastery hold.</p>
+            </div>
+
+            <div class="workout-duration-card" data-workout-duration="20" role="radio" aria-checked="false" tabindex="0">
+              <div class="workout-duration-card-head">
+                <div class="workout-duration-time-wrap">
+                  <span class="workout-duration-badge">20 MIN</span>
+                  <span class="workout-duration-tier">Endurance</span>
+                </div>
+                <span class="workout-duration-check">✓ Active</span>
+              </div>
+              <div class="workout-duration-card-stats">8 Exercises • 50–75 BPM • 4×20s + 3×30s + 60s Climax</div>
+              <p class="workout-duration-card-desc">Heavy athletic test. Long endurance pacing, foundation &amp; deep hold blocks, peak tempo push, and 60s climax hold.</p>
+            </div>
           </div>
 
           <!-- Plan Breakdown -->
-          <div style="margin-top: 20px; width: 100%;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <div style="margin-top: 24px; width: 100%;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
               <span id="workout-plan-title" style="font-size: 0.95rem; font-weight: 700; color: #fff;">10-Minute Standard Workout</span>
               <span id="workout-plan-phases-badge" class="badge-tower-tag">7 EXERCISES</span>
             </div>
@@ -310,8 +353,8 @@
             </div>
           </div>
 
-          <div style="margin-top: 22px; width: 100%;">
-            <button id="btn-workout-start" type="button" class="btn btn-primary" style="width: 100%; font-size: 1.1rem; padding: 16px 24px; font-weight: 700; letter-spacing: 0.04em;">Start Daily Workout</button>
+          <div class="workout-start-wrap">
+            <button id="btn-workout-start" type="button" class="btn btn-primary">Start Daily Workout</button>
           </div>
         </div>
       </section>

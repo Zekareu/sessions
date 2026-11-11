@@ -7641,6 +7641,13 @@ function renderWorkoutDashboard(bannerMsg = null) {
   const duration = selectedWorkoutDuration || 10;
   const routine = WORKOUT_ROUTINES[duration] || WORKOUT_ROUTINES[10];
 
+  document.querySelectorAll(".workout-duration-card, .workout-duration-pill").forEach(c => {
+    const cardDuration = parseInt(c.getAttribute("data-workout-duration"), 10);
+    const isActive = cardDuration === duration;
+    c.classList.toggle("active", isActive);
+    c.setAttribute("aria-checked", String(isActive));
+  });
+
   const planTitle = document.getElementById("workout-plan-title");
   const phasesBadge = document.getElementById("workout-plan-phases-badge");
   const planList = document.getElementById("workout-plan-list");
@@ -7713,13 +7720,25 @@ function renderWorkoutDashboard(bannerMsg = null) {
 }
 
 function initWorkoutSystem() {
-  document.querySelectorAll(".workout-duration-pill").forEach(pill => {
-    pill.addEventListener("click", () => {
-      document.querySelectorAll(".workout-duration-pill").forEach(p => p.classList.remove("active"));
-      pill.classList.add("active");
-      const d = parseInt(pill.getAttribute("data-workout-duration"), 10) || 10;
+  const durationCards = document.querySelectorAll(".workout-duration-card, .workout-duration-pill");
+  durationCards.forEach(card => {
+    const selectCard = () => {
+      durationCards.forEach(c => {
+        c.classList.remove("active");
+        c.setAttribute("aria-checked", "false");
+      });
+      card.classList.add("active");
+      card.setAttribute("aria-checked", "true");
+      const d = parseInt(card.getAttribute("data-workout-duration"), 10) || 10;
       selectedWorkoutDuration = d;
       renderWorkoutDashboard();
+    };
+    card.addEventListener("click", selectCard);
+    card.addEventListener("keydown", e => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        selectCard();
+      }
     });
   });
 
