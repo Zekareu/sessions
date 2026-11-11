@@ -577,6 +577,22 @@ function initSessionSharing() {
   }
 }
 
+function setHubView(view) {
+  const hub = document.getElementById("screen-hub");
+  const sessionsTab = document.getElementById("tab-sessions");
+  const workoutTab = document.getElementById("tab-workout");
+  const prisonTab = document.getElementById("tab-prison");
+  const settingsTab = document.getElementById("tab-settings");
+  if (hub) hub.dataset.view = view;
+  if (sessionsTab) sessionsTab.setAttribute("aria-pressed", String(view === "sessions"));
+  if (workoutTab) workoutTab.setAttribute("aria-pressed", String(view === "workout"));
+  if (prisonTab) prisonTab.setAttribute("aria-pressed", String(view === "prison"));
+  if (settingsTab) settingsTab.setAttribute("aria-pressed", String(view === "settings"));
+  try {
+    localStorage.setItem("os_hub_view", view);
+  } catch (_) {}
+}
+
 function switchScreen(targetScreen) {
   currentScreen = targetScreen;
   if (targetScreen.startsWith("game-")) rewardSentForSession = false;
@@ -663,6 +679,7 @@ function handleBackNavigation() {
       if (pendingPrisonAssignment.cumulativeKey) {
         savePrisonState();
         switchScreen("hub");
+        setHubView("prison");
         renderPrisonDashboard();
         return;
       }
@@ -670,6 +687,7 @@ function handleBackNavigation() {
       return;
     }
     switchScreen("hub");
+    setHubView("prison");
     renderPrisonDashboard();
     return;
   }
@@ -4982,19 +5000,10 @@ function updateOutputFields(mode) {
 }
 
 function initSettingsPage() {
-  const hub = document.getElementById("screen-hub");
   const sessionsTab = document.getElementById("tab-sessions");
   const workoutTab = document.getElementById("tab-workout");
   const prisonTab = document.getElementById("tab-prison");
   const settingsTab = document.getElementById("tab-settings");
-  const setHubView = view => {
-    hub.dataset.view = view;
-    sessionsTab.setAttribute("aria-pressed", String(view === "sessions"));
-    if (workoutTab) workoutTab.setAttribute("aria-pressed", String(view === "workout"));
-    if (prisonTab) prisonTab.setAttribute("aria-pressed", String(view === "prison"));
-    settingsTab.setAttribute("aria-pressed", String(view === "settings"));
-    localStorage.setItem("os_hub_view", view);
-  };
   const savedHubView = localStorage.getItem("os_hub_view");
   if (["sessions", "workout", "prison", "settings"].includes(savedHubView)) {
     setHubView(savedHubView);
@@ -6864,6 +6873,7 @@ function advanceOrCompletePrisonTask() {
   }
   savePrisonState();
   switchScreen("hub");
+  setHubView("prison");
   renderPrisonDashboard();
 }
 
@@ -6934,6 +6944,7 @@ function finishPrisonPenaltyHold() {
       assign.lastFailReason = reason;
       savePrisonState();
       switchScreen("hub");
+      setHubView("prison");
       renderPrisonDashboard();
       return;
     } else if (assign.isFinalRelease) {
@@ -6957,6 +6968,7 @@ function finishPrisonPenaltyHold() {
   prisonState.lastRoll = 0;
   savePrisonState();
   switchScreen("hub");
+  setHubView("prison");
   renderPrisonDashboard();
 }
 
@@ -7543,7 +7555,7 @@ function updateWorkoutArenaReadout() {
   if (totalTimerEl) totalTimerEl.textContent = `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 
   if (fillEl) {
-    const pct = (workoutTotalElapsedSec / workoutTotalDurationSec) * 100;
+    const pct = workoutTotalDurationSec > 0 ? (workoutTotalElapsedSec / workoutTotalDurationSec) * 100 : 0;
     fillEl.style.width = `${Math.min(100, Math.max(0, pct))}%`;
   }
 
@@ -7591,16 +7603,7 @@ function completeWorkout() {
   const stats = recordWorkoutCompletion(workoutDurationMin);
 
   switchScreen("hub");
-  const hub = document.getElementById("screen-hub");
-  if (hub) hub.dataset.view = "workout";
-  const workoutTab = document.getElementById("tab-workout");
-  const sessionsTab = document.getElementById("tab-sessions");
-  const prisonTab = document.getElementById("tab-prison");
-  const settingsTab = document.getElementById("tab-settings");
-  if (workoutTab) workoutTab.setAttribute("aria-pressed", "true");
-  if (sessionsTab) sessionsTab.setAttribute("aria-pressed", "false");
-  if (prisonTab) prisonTab.setAttribute("aria-pressed", "false");
-  if (settingsTab) settingsTab.setAttribute("aria-pressed", "false");
+  setHubView("workout");
 
   renderWorkoutDashboard(
     `🎉 Daily Workout Cleared! +${workoutDurationMin}m recorded. Current streak: ${stats.streak} day${stats.streak === 1 ? "" : "s"}!`
@@ -7610,6 +7613,8 @@ function completeWorkout() {
 function stopWorkoutGame() {
   workoutActive = false;
   workoutInPostStageRest = false;
+  workoutBpmTimestamps = [];
+  workoutLiveBpm = 0;
   if (workoutTicker) {
     clearInterval(workoutTicker);
     workoutTicker = null;
@@ -7733,16 +7738,7 @@ function initWorkoutSystem() {
       if (confirm("Abandon your daily workout? Your progress for this session will not be saved.")) {
         stopWorkoutGame();
         switchScreen("hub");
-        const hub = document.getElementById("screen-hub");
-        if (hub) hub.dataset.view = "workout";
-        const workoutTab = document.getElementById("tab-workout");
-        const sessionsTab = document.getElementById("tab-sessions");
-        const prisonTab = document.getElementById("tab-prison");
-        const settingsTab = document.getElementById("tab-settings");
-        if (workoutTab) workoutTab.setAttribute("aria-pressed", "true");
-        if (sessionsTab) sessionsTab.setAttribute("aria-pressed", "false");
-        if (prisonTab) prisonTab.setAttribute("aria-pressed", "false");
-        if (settingsTab) settingsTab.setAttribute("aria-pressed", "false");
+        setHubView("workout");
         renderWorkoutDashboard();
       }
     });
