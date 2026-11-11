@@ -1,0 +1,1571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Sessions</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="minimal.css">
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous" defer></script>
+</head>
+<body>
+  <div id="app">
+
+    <!-- Top App Bar -->
+    <header class="app-bar">
+      <button id="btn-nav-back" class="icon-btn hidden" aria-label="Back">
+        <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2.5" fill="none"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <div id="app-title" class="app-title">SESSIONS</div>
+      <div class="app-bar-right">
+        <span id="sensor-indicator" class="status-pill idle">IDLE</span>
+      </div>
+    </header>
+
+    <!-- SCREEN 1: GAME SELECT HUB -->
+    <main id="screen-hub" class="screen active" data-view="sessions">
+      <nav class="hub-tabs" aria-label="Home sections">
+        <button id="tab-sessions" type="button" aria-pressed="true">Sessions</button>
+        <button id="tab-prison" type="button" aria-pressed="false">Prison</button>
+        <button id="tab-settings" type="button" aria-pressed="false">Settings</button>
+      </nav>
+      <div class="hub-layout">
+      <div id="hub-sessions" class="hub-sessions">
+      <div class="hub-hero">
+        <h1>Choose a session</h1>
+      </div>
+
+      <div class="game-cards-grid">
+        <!-- Card 1: Hold Debt -->
+        <div class="game-card" data-game="holdchallenge" role="button" tabindex="0">
+          <img class="card-image" src="images/hold-debt.webp" alt="" loading="lazy">
+          <div class="card-body">
+            <h3>HOLD DEBT</h3>
+            <p>Clear a target amount of hold time. Each attempt starts with a short gate before your progress counts.</p>
+          </div>
+        </div>
+
+        <!-- Card 2: Lasting Hold -->
+        <div class="game-card" data-game="holddearlife" role="button" tabindex="0">
+          <img class="card-image" src="images/lasting-hold.webp" alt="" loading="lazy">
+          <div class="card-body">
+            <h3>LASTING HOLD</h3>
+            <p>Stay engaged through a timed endurance round. Choose a visible target or keep the finish a surprise.</p>
+          </div>
+        </div>
+
+        <!-- Card 3: Count Climb -->
+        <div class="game-card" data-game="reachcount" role="button" tabindex="0">
+          <img class="card-image" src="images/count-climb.webp" alt="" loading="lazy">
+          <div class="card-body">
+            <h3>COUNT CLIMB</h3>
+            <p>Build a rep streak and respond to occasional hold challenges with a short heads up.</p>
+          </div>
+        </div>
+
+        <!-- Card 4: Pulse Runner -->
+        <div class="game-card" data-game="rhythm" role="button" tabindex="0">
+          <img class="card-image" src="images/pulse-runner.webp" alt="" loading="lazy">
+          <div class="card-body">
+            <h3>PULSE RUNNER</h3>
+            <p>Follow a steady beat and match your target tempo. Intro mode builds the pace gradually.</p>
+          </div>
+        </div>
+
+        <!-- Card 5: Hold Summit -->
+        <div class="game-card" data-game="tower" role="button" tabindex="0">
+          <img class="card-image" src="images/hold-summit.webp" alt="" loading="lazy">
+          <div class="card-body">
+            <h3>HOLD SUMMIT</h3>
+            <p>Move through a series of timed holds, with a short rest between each level.</p>
+          </div>
+        </div>
+
+        <!-- Card 6: Circuit Quest -->
+        <div class="game-card" data-game="routine" role="button" tabindex="0">
+          <img class="card-image" src="images/circuit-quest.webp" alt="" loading="lazy">
+          <div class="card-body">
+            <h3>CIRCUIT QUEST</h3>
+            <p>Follow a guided circuit that alternates rhythm and hold exercises.</p>
+          </div>
+        </div>
+
+        <!-- Card 7: Hidden Timer -->
+        <div class="game-card" data-game="blindhilt" role="button" tabindex="0">
+          <img class="card-image" src="images/hidden-timer.webp" alt="" loading="lazy">
+          <div class="card-body">
+            <h3>HIDDEN TIMER</h3>
+            <p>Practice a continuous hold without watching the clock. Listen for the release cue.</p>
+          </div>
+        </div>
+
+        <!-- Card 8: Tempo Ascent (Ascent & Deep Hold) -->
+        <div class="game-card" data-game="tempoescalation" role="button" tabindex="0">
+          <img class="card-image" src="images/tempo-ascent.webp" alt="" loading="lazy">
+          <div class="card-body">
+            <h3>TEMPO ASCENT</h3>
+            <p>Follow an accelerating beat, then finish each stage with a steady hold.</p>
+          </div>
+        </div>
+      </div>
+      </div>
+
+      <!-- ============================================== -->
+      <!-- DEEPTHROAT PRISON CAMPAIGN TAB                 -->
+      <!-- ============================================== -->
+      <section id="hub-prison" class="hub-prison" aria-labelledby="prison-heading">
+        <div class="prison-hero-card">
+          <img class="prison-hero-img card-image" src="images/prison/hero.webp" alt="Deepthroat Prison">
+          <div class="prison-hero-body">
+            <div class="prison-title-row">
+              <div>
+                <span class="prison-kicker">SENSOR CAMPAIGN ROULETTE</span>
+                <h1 id="prison-heading">DEEPTHROAT PRISON</h1>
+              </div>
+              <button id="btn-prison-toggle-lore" type="button" class="btn-secondary-small">Story &amp; Rules ▾</button>
+            </div>
+
+            <div id="prison-lore-panel" class="prison-lore-panel hidden">
+              <div class="prison-lore-block">
+                <h3>Story</h3>
+                <p>You have been imprisoned for a crime you did not commit. In your country, the corruption of the judicial and police systems is widespread, causing many innocent citizens to suffer. The prison where you are being held is a special one, and all the guards are futanari. The sentence handed down to you is to serve their cocks with your throat. Looking back, even the judge who presided over your trial was a futanari. With a sense of looming conspiracy, you contemplate the dark future ahead of you.</p>
+              </div>
+              <div class="prison-lore-grid">
+                <div class="prison-lore-block">
+                  <h3>Rules &amp; Goal</h3>
+                  <p><b>Your Goal:</b> Roll 1d6 at the start of your sentence to determine the points required for release (<b>550 to 800 pts</b>).</p>
+                  <p><b>Tasks:</b> Roll 1–6 and perform the sensor-tracked task. Succeed to earn its points. Fail or abort, and the same amount of points is deducted from your total (plus punishment).</p>
+                  <p><b>Punishment Cell:</b> If you roll <b>6</b> on Basic, Intermediate, or Advanced tiers, you are sent to the Punishment Cell, where you must roll 1–6 and complete re-education tasks until you roll a <b>Release</b> instruction.</p>
+                </div>
+                <div class="prison-lore-block">
+                  <h3>Sentence Table &amp; Gear</h3>
+                  <ul class="prison-list">
+                    <li><b>Roll 1:</b> 550 pts &nbsp;|&nbsp; <b>Roll 4:</b> 700 pts</li>
+                    <li><b>Roll 2:</b> 600 pts &nbsp;|&nbsp; <b>Roll 5:</b> 750 pts</li>
+                    <li><b>Roll 3:</b> 650 pts &nbsp;|&nbsp; <b>Roll 6:</b> 800 pts</li>
+                  </ul>
+                  <p style="margin-top:8px;"><b>Required Items:</b> Dildo (tracked via Camera / Sensor) &amp; Chastity Cage.</p>
+                </div>
+              </div>
+              <div class="prison-lore-block">
+                <h3>Your Cellmates</h3>
+                <p>There were five other prisoners in the communal cell where you were confined. All of them had somber expressions and claimed they had been arrested for crimes they didn't commit. Suddenly, a guard's voice boomed: <i>"No more talking! It's time for work!"</i></p>
+                <img class="prison-cellmates-img card-image" src="images/prison/cellmates.webp" alt="Your cellmates">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sentence & Points Status Dashboard -->
+        <div class="prison-status-card">
+          <div class="prison-status-top">
+            <div class="prison-points-box">
+              <span class="prison-stat-label">SENTENCE PROGRESS</span>
+              <div class="prison-points-readout">
+                <span id="prison-current-pts">0</span>
+                <span class="prison-pts-sep">/</span>
+                <span id="prison-target-pts">???</span>
+                <span class="prison-pts-unit">PTS</span>
+              </div>
+            </div>
+
+            <div class="prison-cell-badge-wrap">
+              <span id="prison-cell-badge" class="prison-cell-badge normal">COMMUNAL CELL</span>
+              <span id="prison-tier-unlock-label" class="prison-sub-status">Roll sentence to begin</span>
+            </div>
+          </div>
+
+          <div class="prison-progress-track">
+            <div id="prison-progress-fill" class="prison-progress-fill" style="width: 0%;"></div>
+          </div>
+          <div class="prison-milestones">
+            <span>0 Basic</span>
+            <span>60 Intermediate</span>
+            <span>200 Advanced</span>
+            <span id="prison-milestone-release">Release Goal</span>
+          </div>
+
+          <div class="prison-stats-row">
+            <div class="prison-mini-stat"><span>Cleared</span><b id="prison-stat-cleared">0</b></div>
+            <div class="prison-mini-stat"><span>Failed</span><b id="prison-stat-failed">0</b></div>
+            <div class="prison-mini-stat"><span>Solitary Visits</span><b id="prison-stat-solitary">0</b></div>
+          </div>
+
+          <!-- Initial Sentence Roll Prompt (shown when targetPts === 0) -->
+          <div id="prison-sentence-roll-box" class="prison-action-banner">
+            <p>Roll 1d6 to determine the points required for your release (550 – 800 pts).</p>
+            <button id="btn-prison-roll-sentence" type="button" class="btn-play-action">ROLL SENTENCE (1D6)</button>
+          </div>
+
+          <!-- Active Dice Roller & Task Controls (shown once sentence is active) -->
+          <div id="prison-roller-box" class="prison-roller-box hidden">
+            <div class="prison-dice-stage">
+              <div id="prison-dice-face" class="prison-dice-face">1D6</div>
+              <div class="prison-dice-info">
+                <div id="prison-roll-title" class="prison-roll-title">Ready to Roll</div>
+                <div id="prison-roll-desc" class="prison-roll-desc">Select your unlocked tier below and roll 1d6 for your next assignment.</div>
+              </div>
+            </div>
+            <div class="prison-roller-actions">
+              <button id="btn-prison-roll-task" type="button" class="btn-play-action">ROLL TASK (1D6)</button>
+              <button id="btn-prison-start-task" type="button" class="btn-play-action prison-start-btn hidden">START SENSOR TASK</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Punishment Cell Warden Banner (only visible when in Punishment Cell) -->
+        <div id="prison-warden-card" class="prison-warden-card hidden">
+          <img id="prison-warden-img" class="prison-warden-img card-image" src="images/prison/warden-basic.webp" alt="Punishment Warden">
+          <div class="prison-warden-body">
+            <span class="prison-kicker" style="color: #ff4d6d;">SOLITARY CONFINEMENT</span>
+            <h2 id="prison-warden-title">PUNISHMENT CELL</h2>
+            <p id="prison-warden-lore">You were deemed to have an insufficient attitude of serving cock and were sent to the punishment cell. Roll 1d6 and complete re-education tasks until you roll a Release instruction.</p>
+            <div id="prison-warden-table" class="prison-warden-table"></div>
+          </div>
+        </div>
+
+        <!-- Tier Selector Tabs -->
+        <div class="prison-tier-tabs" role="tablist" aria-label="Prison Task Tiers">
+          <button type="button" class="prison-tier-tab active" data-prison-tier="basic">Basic (0+)</button>
+          <button type="button" class="prison-tier-tab" data-prison-tier="interm">Intermediate (60+)</button>
+          <button type="button" class="prison-tier-tab" data-prison-tier="adv">Advanced (200+)</button>
+          <button type="button" class="prison-tier-tab" data-prison-tier="final">Final Release</button>
+        </div>
+
+        <!-- 6-Card Roulette Board for Selected Tier -->
+        <div id="prison-tasks-grid" class="prison-tasks-grid"></div>
+
+        <!-- Ending Unlocked Card -->
+        <div id="prison-ending-card" class="prison-ending-card hidden">
+          <div class="prison-ending-body">
+            <span class="prison-kicker">SENTENCE COMPLETED</span>
+            <h2>ENDING: NEW OWNER</h2>
+            <p>Just when you thought you had finished your sentence, you were restrained once again and brought to a room that resembled a drawing room. Inside, there was a correctional officer and an unfamiliar futanari woman. "So, you've served your sentence well. Congratulations. But, of course, that doesn't mean you're free. This lady here is your new owner. She's been incredibly generous and has made a substantial donation to this prison. As the warden, I must repay such kindness. You will now become her throat slave. Oh, don't worry. As far as official records are concerned, you're dead. As a human, you no longer exist in this world. You can never return to your old life. As for the other prisoners who were in the communal cell with you, they too have found new owners. Both you and they will serve your new owners as a class until you are broken. Enjoy your new life."</p>
+          </div>
+          <img class="prison-ending-img card-image" src="images/prison/ending.webp" alt="Ending">
+        </div>
+
+        <!-- Footer Campaign Controls -->
+        <div class="prison-footer-row">
+          <button id="btn-prison-reset" type="button" class="btn-secondary-small">Reset Prison Campaign</button>
+        </div>
+      </section>
+
+    <!-- ============================================== -->
+    <!-- SETTINGS ON THE HOME PAGE                      -->
+    <!-- ============================================== -->
+    <section id="settings-section" class="settings-section" aria-labelledby="settings-heading">
+      <div class="settings-shell">
+        <div class="modal-header">
+          <h2 id="settings-heading">Settings</h2>
+        </div>
+
+        <div class="settings-content">
+          <h3 class="settings-section-title">Punishment</h3>
+          <div class="form-group">
+            <label>Output</label>
+            <select id="cfg-output-mode">
+              <option value="openshock">OpenShock</option>
+              <option value="pishock">PiShock</option>
+              <option value="webhook">Webhook</option>
+            </select>
+          </div>
+
+          <div id="output-openshock-fields" class="settings-group">
+          <div class="form-group">
+            <label>OpenShock API Token</label>
+            <input type="password" id="cfg-token" placeholder="Paste OpenShock API Token">
+          </div>
+
+          <div class="form-group">
+            <label>Shocker UUID</label>
+            <input type="text" id="cfg-shocker-id" placeholder="Paste Shocker UUID">
+          </div>
+          </div>
+
+          <div id="output-pishock-fields" class="settings-group hidden">
+          <div class="form-group">
+            <label>PiShock Username</label>
+            <input type="text" id="cfg-pishock-username" placeholder="PiShock account username" autocomplete="off">
+          </div>
+
+          <div class="form-group">
+            <label>PiShock API Key</label>
+            <input type="password" id="cfg-pishock-key" placeholder="PiShock API key" autocomplete="off">
+          </div>
+
+          <div class="form-group">
+            <label>PiShock Share Code</label>
+            <input type="text" id="cfg-pishock-code" placeholder="Active share code" autocomplete="off">
+          </div>
+          </div>
+
+          <div id="output-webhook-fields" class="settings-group hidden">
+          <div class="form-group">
+            <label>Webhook URL</label>
+            <input type="url" id="cfg-webhook-url" placeholder="https://example.com/punishment" autocomplete="off">
+          </div>
+
+          <div class="form-group">
+            <label>Webhook Bearer Token (optional)</label>
+            <input type="password" id="cfg-webhook-token" placeholder="Only if your webhook requires one" autocomplete="off">
+          </div>
+          </div>
+
+          <div id="punishment-options">
+          <div class="form-row">
+            <div class="form-group half">
+              <label>Default Intensity</label>
+              <input type="number" id="cfg-intensity" min="1" max="99" value="20">
+            </div>
+            <div class="form-group half">
+              <label>Duration (ms)</label>
+              <input type="number" id="cfg-duration" min="100" max="10000" step="100" value="1000">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Action</label>
+            <div class="segmented-control">
+              <label><input type="radio" name="action-type" value="Shock" checked> <span>Shock</span></label>
+              <label><input type="radio" name="action-type" value="Vibrate"> <span>Vibrate</span></label>
+              <label><input type="radio" name="action-type" value="Sound"> <span>Beep</span></label>
+            </div>
+          </div>
+          </div>
+          <button id="btn-test-action" class="btn btn-secondary punishment-test-button" type="button">Test punishment</button>
+          <div id="test-feedback" class="feedback-text" role="status"></div>
+
+          <div class="settings-group reward-settings">
+            <h3 class="settings-section-title">Reward</h3>
+            <p class="sub-hint">Optional. Sends one event when a session is completed.</p>
+            <div class="form-group">
+              <label>Webhook URL</label>
+              <input type="url" id="cfg-reward-webhook-url" placeholder="https://example.com/reward" autocomplete="off">
+            </div>
+            <div class="form-group">
+              <label>Bearer token (optional)</label>
+              <input type="password" id="cfg-reward-webhook-token" placeholder="Only if your webhook requires one" autocomplete="off">
+            </div>
+            <button id="btn-test-reward-webhook" class="btn btn-secondary" type="button">Test reward</button>
+            <p id="reward-test-feedback" class="feedback-text" role="status"></p>
+          </div>
+
+          <h3 class="settings-section-title input-section-title">Input</h3>
+          <div class="form-group">
+            <label>Hold Input Source</label>
+            <select id="cfg-input-source">
+              <option value="touch">Touch / Mouse / Keyboard Space (Default)</option>
+              <option value="gamepad">Gamepad / Bluetooth Controller Button</option>
+              <option value="mediapipe">AI Face &amp; Chin Depth Meter (MediaPipe)</option>
+              <option value="ambient-light">Native Ambient Light Sensor (Hardware Lux)</option>
+              <option value="camera">Front Camera Light Meter (Hold by covering)</option>
+              <option value="websocket">Hardware WebSocket (Distance sensor)</option>
+            </select>
+          </div>
+
+          <!-- MediaPipe Face Mesh AI Depth & Tripwire Meter -->
+          <div id="panel-mediapipe" class="subpanel hidden">
+            <p class="sub-hint">Tracks facial profile &amp; features with MediaPipe AI. Position your phone to the side, above, or in front!</p>
+            <div id="mp-support-alert" class="support-status">Loading MediaPipe FaceMesh engine...</div>
+
+            <!-- Angle Mode Selector -->
+            <div class="form-group" style="margin-top: 10px;">
+              <label>Camera Angle &amp; Tracking Mode</label>
+              <div class="segmented-control" id="mp-mode-selector">
+                <label><input type="radio" name="mp-mode" value="side" checked> <span>Side View</span></label>
+                <label><input type="radio" name="mp-mode" value="top"> <span>Top Down</span></label>
+                <label><input type="radio" name="mp-mode" value="front"> <span>Front View</span></label>
+              </div>
+            </div>
+            
+            <div class="mp-preview-container">
+              <video id="mp-video" autoplay playsinline muted style="display:none;"></video>
+              <canvas id="mp-canvas" width="240" height="180" class="mp-canvas"></canvas>
+              <div id="mp-indicator-badge" class="mp-badge badge-far">OUT OF DEPTH</div>
+            </div>
+
+            <div class="meter-readout" style="margin-top: 8px;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span id="mp-metric-label">Target Position: <b id="mp-distance-val">…</b></span>
+                <span id="mp-lock-status" style="font-size: 0.75rem; color: var(--red-punish); font-weight: 800;">OUT OF DEPTH</span>
+              </div>
+              <div class="meter-bar"><div id="mp-distance-fill" class="meter-fill" style="width: 100%;"></div></div>
+            </div>
+
+            <!-- 1. Side Mode Settings -->
+            <div id="mp-settings-side" class="mp-mode-settings">
+              <div class="form-group" style="margin-top: 10px;">
+                <label>Approach Direction</label>
+                <div class="segmented-control">
+                  <label><input type="radio" name="mp-side-dir" value="ltr" checked> <span>Left &rarr; Right</span></label>
+                  <label><input type="radio" name="mp-side-dir" value="rtl"> <span>Right &larr; Left</span></label>
+                </div>
+              </div>
+              <div class="form-group" style="margin-top: 8px;">
+                <label>Target Line (X) &bull; <span id="cfg-mp-tripwire-x-val">65%</span></label>
+                <input type="range" id="cfg-mp-tripwire-x" min="10" max="90" value="65">
+                <span class="sub-hint" style="display:block; margin-top:4px;">Nose/chin crossing this vertical line counts as the target position.</span>
+              </div>
+              <div class="form-group" style="margin-top: 8px;">
+                <label>Retract / Clearance Line (X) &bull; <span id="cfg-mp-retract-x-val">35%</span></label>
+                <input type="range" id="cfg-mp-retract-x" min="5" max="85" value="35">
+                <span class="sub-hint" style="display:block; margin-top:4px;">Must pull all the way back past this line to reset the next rep.</span>
+              </div>
+            </div>
+
+            <!-- 2. Top-Down Mode Settings -->
+            <div id="mp-settings-top" class="mp-mode-settings hidden">
+              <div class="form-group" style="margin-top: 10px;">
+                <label>Approach Direction</label>
+                <div class="segmented-control">
+                  <label><input type="radio" name="mp-top-dir" value="ttb" checked> <span>Top &darr; Down</span></label>
+                  <label><input type="radio" name="mp-top-dir" value="btt"> <span>Bottom &uarr; Up</span></label>
+                </div>
+              </div>
+              <div class="form-group" style="margin-top: 8px;">
+                <label>Target Line (Y) &bull; <span id="cfg-mp-tripwire-y-val">70%</span></label>
+                <input type="range" id="cfg-mp-tripwire-y" min="10" max="90" value="70">
+                <span class="sub-hint" style="display:block; margin-top:4px;">Nose/chin crossing this horizontal line counts as the target position.</span>
+              </div>
+              <div class="form-group" style="margin-top: 8px;">
+                <label>Retract / Clearance Line (Y) &bull; <span id="cfg-mp-retract-y-val">40%</span></label>
+                <input type="range" id="cfg-mp-retract-y" min="5" max="85" value="40">
+                <span class="sub-hint" style="display:block; margin-top:4px;">Must pull all the way back past this line to reset the next rep.</span>
+              </div>
+            </div>
+
+            <!-- 3. Front Mode Settings -->
+            <div id="mp-settings-front" class="mp-mode-settings hidden">
+              <div class="form-group" style="margin-top: 10px;">
+                <label>Target Distance Threshold &bull; <span id="cfg-mp-threshold-val">5.0 cm</span></label>
+                <input type="range" id="cfg-mp-threshold" min="1.5" max="15.0" step="0.5" value="5.0">
+                <span class="sub-hint" style="display:block; margin-top:4px;">Being closer than or equal to this distance is recognized as the target position.</span>
+              </div>
+              <div class="form-group" style="margin-top: 8px;">
+                <label>Retract / Clearance Distance &bull; <span id="cfg-mp-retract-dist-val">14.0 cm</span></label>
+                <input type="range" id="cfg-mp-retract-dist" min="8.0" max="30.0" step="1.0" value="14.0">
+                <span class="sub-hint" style="display:block; margin-top:4px;">Must pull all the way back past this distance to reset the next rep.</span>
+              </div>
+            </div>
+
+            <!-- Mouth Object Lock (Detects if object leaves the mouth) -->
+            <div class="mp-mode-settings" style="margin-top: 10px;">
+              <div class="form-group" style="margin-bottom: 8px;">
+                <label>Mouth Object Lock (Detect if Object Leaves Mouth)</label>
+                <div class="segmented-control">
+                  <label><input type="radio" name="mp-mouth-lock" value="off"> <span>Off</span></label>
+                  <label><input type="radio" name="mp-mouth-lock" value="on" checked> <span>Require In Mouth</span></label>
+                </div>
+              </div>
+              <div id="mp-mouth-lock-controls">
+                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.78rem; margin: 6px 0;">
+                  <span>Mouth Sensor: <b id="mp-mouth-val">Waiting for face…</b></span>
+                  <span id="mp-mouth-status" style="font-weight: 800;">STANDBY</span>
+                </div>
+                <div class="form-group" style="margin-top: 6px; margin-bottom: 4px;">
+                  <label>Mouth Aperture / Bridge Threshold &bull; <span id="cfg-mp-mouth-sens-val">24%</span></label>
+                  <input type="range" id="cfg-mp-mouth-sens" min="10" max="65" value="24">
+                  <span class="sub-hint" style="display:block; margin-top:4px;">Tracks jaw/lip opening and the object bridge in front of the lips. Triggers feedback if the object leaves the mouth.</span>
+                </div>
+                <button id="btn-mp-calibrate-mouth" type="button" class="btn btn-secondary" style="font-size: 0.78rem; padding: 8px 10px; width: 100%; margin-top: 4px;">👄 Calibrate Object In Mouth</button>
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap;">
+              <button id="btn-mp-calibrate" class="btn btn-secondary" style="font-size: 0.8rem; padding: 10px; flex: 1;">🎯 Set Target Line (IN)</button>
+              <button id="btn-mp-calibrate-retract" class="btn btn-secondary" style="font-size: 0.8rem; padding: 10px; flex: 1;">🎯 Set Retract Line (OUT)</button>
+              <button id="btn-mp-toggle" class="btn btn-primary" style="font-size: 0.8rem; padding: 10px; flex: 100%;">Start Face Tracking</button>
+            </div>
+          </div>
+
+          <!-- Native Ambient Light Sensor details -->
+          <div id="panel-ambient-light" class="subpanel hidden">
+            <p class="sub-hint">Reads raw lux from the phone's physical ambient light sensor (Generic Sensor API). Cover sensor to hold!</p>
+            <div id="ambient-support-alert" class="support-status">Checking sensor support...</div>
+            <button id="btn-ambient-toggle" class="btn btn-secondary">Start Ambient Light Sensor</button>
+            <div class="meter-readout">
+              <span>Illuminance: <b id="lux-meter-val">0</b> lx</span>
+              <div class="meter-bar"><div id="lux-meter-fill" class="meter-fill" style="width: 0%;"></div></div>
+            </div>
+            <div class="form-group" style="margin-top: 10px;">
+              <label>Cover Threshold (lx) &bull; <span id="cfg-lux-threshold-val">15 lx</span></label>
+              <input type="range" id="cfg-lux-threshold" min="1" max="100" value="15">
+              <span class="sub-hint" style="display:block; margin-top:4px;">When illuminance falls below this value, contact is recognized as HELD.</span>
+            </div>
+          </div>
+
+          <!-- Camera details -->
+          <div id="panel-camera" class="subpanel hidden">
+            <p class="sub-hint">Samples front camera at 30 FPS. Cover the camera/bezel to hold!</p>
+            <button id="btn-camera-toggle" class="btn btn-secondary">Start Camera Light Meter</button>
+            <div class="meter-readout">
+              <span>Brightness: <b id="cam-meter-val">0</b>%</span>
+              <div class="meter-bar"><div id="cam-meter-fill" class="meter-fill"></div></div>
+            </div>
+            <video id="cam-video" autoplay playsinline muted style="display:none;"></video>
+            <canvas id="cam-canvas" width="16" height="16" style="display:none;"></canvas>
+          </div>
+
+          <!-- WebSocket details -->
+          <div id="panel-websocket" class="subpanel hidden">
+            <div class="form-group">
+              <label>WebSocket URL</label>
+              <input type="text" id="cfg-ws-url" value="ws://localhost:8080">
+            </div>
+            <button id="btn-ws-connect" class="btn btn-secondary">Connect WebSocket</button>
+            <span id="ws-status" class="sub-hint">Disconnected</span>
+          </div>
+
+          <div class="modal-buttons">
+            <button id="btn-save-settings" class="btn btn-primary">Save Settings</button>
+          </div>
+          <p id="settings-save-feedback" class="feedback-text" role="status"></p>
+        </div>
+      </div>
+    </section>
+      </div>
+    </main>
+
+    <!-- ============================================== -->
+    <!-- GAME 1: HOLD DEBT (DEBT & INITIAL HOLD)   -->
+    <!-- ============================================== -->
+    <main id="screen-setup-holdchallenge" class="screen setup-screen">
+      <div class="setup-hero-banner">
+        <span class="setup-badge badge-hold">HOLD DEBT</span>
+        <h2>HOLD DEBT</h2>
+      </div>
+
+      <div class="setup-body">
+        <p class="setup-description">
+          Set a total hold time to clear. Each attempt begins with an <b>initial hold that does not count toward the total</b>. After that gate, hold time reduces your remaining debt. Releasing starts a rest period; the next attempt begins with a new gate.
+        </p>
+
+        <div class="setup-card">
+          <label class="setup-label">TOTAL HOLD DEBT TO CLEAR</label>
+          <div class="pills-row">
+            <button class="pill-select" data-hc-debt="30">30s</button>
+            <button class="pill-select active" data-hc-debt="60">60s</button>
+            <button class="pill-select" data-hc-debt="90">90s</button>
+            <button class="pill-select" data-hc-debt="120">2m</button>
+            <button class="pill-select" data-hc-debt="180">3m</button>
+          </div>
+        </div>
+
+        <div class="setup-card">
+          <label class="setup-label">INITIAL HOLD TIME</label>
+          <div class="pills-row">
+            <button class="pill-select" data-hc-gate="3">3s</button>
+            <button class="pill-select active" data-hc-gate="5">5s</button>
+            <button class="pill-select" data-hc-gate="8">8s</button>
+            <button class="pill-select" data-hc-gate="10">10s</button>
+          </div>
+        </div>
+
+        <div class="setup-card">
+          <label class="setup-label">TIME ADDED AFTER EARLY RELEASE</label>
+          <div class="pills-row">
+            <button class="pill-select" data-hc-penalty="0">+0s</button>
+            <button class="pill-select active" data-hc-penalty="5">+5s</button>
+            <button class="pill-select" data-hc-penalty="10">+10s</button>
+            <button class="pill-select" data-hc-penalty="15">+15s</button>
+          </div>
+        </div>
+
+        <div class="setup-card">
+          <label class="setup-label">MAX REST BETWEEN HOLDS</label>
+          <div class="pills-row">
+            <button class="pill-select" data-hc-rest="4">4s</button>
+            <button class="pill-select active" data-hc-rest="6">6s</button>
+            <button class="pill-select" data-hc-rest="10">10s</button>
+          </div>
+        </div>
+
+        <div class="setup-card hardware-only">
+          <label class="setup-label">DEVICE INTENSITY</label>
+          <div class="slider-box">
+            <input type="range" id="setup-hc-intensity" min="1" max="99" value="20">
+            <span id="setup-hc-intensity-val">20%</span>
+          </div>
+        </div>
+
+        <button id="btn-play-holdchallenge" class="btn-play">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          PLAY HOLD DEBT
+        </button>
+      </div>
+    </main>
+
+    <main id="screen-game-holdchallenge" class="screen">
+      <div class="game-header">
+        <div class="tower-stats-header">
+          <span id="hc-phase-pill" class="badge-tower-tag">GATE: 5.0s</span>
+          <span id="hc-intensity-pill" class="badge-intensity-tag hardware-only">DEVICE: 20%</span>
+        </div>
+      </div>
+
+      <div class="tower-progress-wrapper">
+        <div class="tower-track"><div id="hc-debt-progress" class="tower-fill" style="width: 100%;"></div></div>
+      </div>
+
+      <div id="hc-arena" class="hold-arena">
+        <div class="arena-overlay">
+          <div class="arena-content">
+            <div class="bpm-meta-row">
+              <span>DEBT REMAINING:</span>
+              <span id="hc-penalty-tag" class="penalty-tag hidden">+5s ADDED TO DEBT</span>
+            </div>
+            <div id="hc-big-timer" class="big-timer">60.0</div>
+
+            <div id="hc-gate-box" class="gate-status-box">
+              <span id="hc-gate-label">INITIAL GATE:</span>
+              <b id="hc-gate-timer">5.0s</b>
+              <span class="gate-hint">(DOESN'T COUNT TOWARDS DEBT)</span>
+            </div>
+
+            <div id="hc-rest-alert" class="idle-warning-box hidden">
+              ⚠️ ANTI STALL: HOLD IN <span id="hc-rest-num">6</span>s OR FEEDBACK!
+            </div>
+
+            <div id="hc-state-label" class="state-label">HOLD DOWN TO START GATE</div>
+            <div id="hc-sub-hint" class="sub-hint">Hold for initial 5s gate to start reducing debt. Stalling triggers shock!</div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- ============================================== -->
+    <!-- GAME 2: LASTING HOLD                     -->
+    <!-- ============================================== -->
+    <main id="screen-setup-holddearlife" class="screen setup-screen">
+      <div class="setup-hero-banner">
+        <span class="setup-badge badge-hdl">LASTING HOLD</span>
+        <h2>LASTING HOLD</h2>
+      </div>
+
+      <div class="setup-body">
+        <p class="setup-description">
+          Maintain contact until the target time is complete. Choose a visible or hidden target. Releasing triggers your selected feedback until you resume the hold.
+        </p>
+
+        <!-- Duration Mode -->
+        <div class="setup-card">
+          <label class="setup-label">DURATION MODE</label>
+          <div class="pills-row">
+            <button class="pill-select active" data-hdl-mode="random">Random (Min to Max)</button>
+            <button class="pill-select" data-hdl-mode="unlimited">Unlimited (Endurance)</button>
+          </div>
+        </div>
+
+        <!-- Random Duration Settings (shown when Random is selected) -->
+        <div id="hdl-random-settings">
+          <div class="setup-card">
+            <label class="setup-label">MINIMUM HOLD DURATION</label>
+            <div class="pills-row">
+              <button class="pill-select" data-hdl-min="15">15s</button>
+              <button class="pill-select active" data-hdl-min="30">30s</button>
+              <button class="pill-select" data-hdl-min="45">45s</button>
+              <button class="pill-select" data-hdl-min="60">60s</button>
+              <button class="pill-select" data-hdl-min="90">90s</button>
+            </div>
+          </div>
+
+          <div class="setup-card">
+            <label class="setup-label">MAXIMUM HOLD DURATION</label>
+            <div class="pills-row">
+              <button class="pill-select" data-hdl-max="45">45s</button>
+              <button class="pill-select" data-hdl-max="60">60s</button>
+              <button class="pill-select active" data-hdl-max="90">90s</button>
+              <button class="pill-select" data-hdl-max="120">2m</button>
+              <button class="pill-select" data-hdl-max="180">3m</button>
+            </div>
+          </div>
+
+          <div class="setup-card">
+            <label class="setup-label">TARGET VISIBILITY</label>
+            <div class="pills-row">
+              <button class="pill-select active" data-hdl-display="hidden">Mystery / Hidden ❓</button>
+              <button class="pill-select" data-hdl-display="visible">Visible Countdown ⏱️</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="setup-card hardware-only">
+          <label class="setup-label">DEVICE INTENSITY</label>
+          <div class="slider-box">
+            <input type="range" id="setup-hdl-intensity" min="1" max="99" value="20">
+            <span id="setup-hdl-intensity-val">20%</span>
+          </div>
+        </div>
+
+        <div class="setup-card">
+          <div class="setting-line">
+            <span>On Release</span>
+            <b style="color:var(--red-punish);">Continuous Feedback Until Held</b>
+          </div>
+          <div class="setting-line">
+            <span>Safety Killswitch</span>
+            <b>20 Minutes Max</b>
+          </div>
+        </div>
+
+        <button id="btn-play-holddearlife" class="btn-play">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          PLAY LASTING HOLD
+        </button>
+      </div>
+    </main>
+
+    <main id="screen-game-holddearlife" class="screen">
+      <div class="game-header">
+        <div class="tower-stats-header">
+          <span id="hdl-mode-pill" class="badge-tower-tag">RANDOM: 30s to 90s</span>
+          <span id="hdl-intensity-pill" class="badge-intensity-tag hardware-only">DEVICE: 20%</span>
+        </div>
+      </div>
+
+      <div id="hdl-progress-wrapper" class="tower-progress-wrapper">
+        <div class="tower-track"><div id="hdl-progress-bar" class="tower-fill" style="width: 0%;"></div></div>
+      </div>
+
+      <div id="hdl-arena" class="hold-arena">
+        <div class="arena-overlay">
+          <div class="arena-content">
+            <div id="hdl-target-tag" class="target-tag">MYSTERY TARGET: 30s to 90s</div>
+            <div id="hdl-big-timer" class="big-timer">00:00.0</div>
+            <div id="hdl-state-label" class="state-label">HOLD DOWN TO START</div>
+            <div id="hdl-sub-hint" class="sub-hint">Starts when held down. Releasing shocks continuously until pressed again!</div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- ============================================== -->
+    <!-- GAME 3: COUNT CLIMB                        -->
+    <!-- ============================================== -->
+    <main id="screen-setup-reachcount" class="screen setup-screen">
+      <div class="setup-hero-banner">
+        <span class="setup-badge badge-count">COUNT CLIMB</span>
+        <h2>COUNT CLIMB</h2>
+      </div>
+
+      <div class="setup-body">
+        <p class="setup-description">
+          Complete your target number of reps. Occasional hold challenges announce themselves three seconds in advance. Inactivity can trigger your selected feedback.
+        </p>
+
+        <div class="setup-card">
+          <label class="setup-label">TARGET DT REPS</label>
+          <div class="pills-row">
+            <button class="pill-select" data-dt-target="25">25 reps</button>
+            <button class="pill-select active" data-dt-target="50">50 reps</button>
+            <button class="pill-select" data-dt-target="100">100 reps</button>
+            <button class="pill-select" data-dt-target="200">200 reps</button>
+          </div>
+        </div>
+
+        <div class="setup-card">
+          <label class="setup-label">SURPRISE HOLD CHANCE</label>
+          <div class="pills-row">
+            <button class="pill-select" data-dt-prob="0">Off (0%)</button>
+            <button class="pill-select" data-dt-prob="5">5%</button>
+            <button class="pill-select active" data-dt-prob="10">10%</button>
+            <button class="pill-select" data-dt-prob="20">20%</button>
+          </div>
+        </div>
+
+        <div class="setup-card">
+          <label class="setup-label">SURPRISE HOLD DURATION</label>
+          <div class="pills-row">
+            <button class="pill-select" data-dt-holdduration="3">3s</button>
+            <button class="pill-select active" data-dt-holdduration="5">5s</button>
+            <button class="pill-select" data-dt-holdduration="8">8s</button>
+            <button class="pill-select" data-dt-holdduration="10">10s</button>
+          </div>
+        </div>
+
+        <div class="setup-card">
+          <label class="setup-label">PENALTY REPS ADDED ON FAILED HOLD</label>
+          <div class="pills-row">
+            <button class="pill-select" data-dt-penalty="0">+0 reps</button>
+            <button class="pill-select active" data-dt-penalty="5">+5 reps</button>
+            <button class="pill-select" data-dt-penalty="10">+10 reps</button>
+          </div>
+        </div>
+
+        <!-- Stalling Watchdog Timeout -->
+        <div class="setup-card">
+          <label class="setup-label">STALLING WATCHDOG (MAX INACTIVITY BEFORE SHOCK)</label>
+          <div class="pills-row">
+            <button class="pill-select" data-dt-watchdog="0">Off</button>
+            <button class="pill-select" data-dt-watchdog="3">3s</button>
+            <button class="pill-select active" data-dt-watchdog="5">5s</button>
+            <button class="pill-select" data-dt-watchdog="8">8s</button>
+            <button class="pill-select" data-dt-watchdog="10">10s</button>
+          </div>
+        </div>
+
+        <!-- Stalling Warning Lead Time -->
+        <div class="setup-card" id="dt-watchdog-warn-card">
+          <label class="setup-label">STALL WARNING LEAD TIME (COUNTDOWN BEFORE SHOCK)</label>
+          <div class="pills-row">
+            <button class="pill-select" data-dt-watchdog-warn="1">1s</button>
+            <button class="pill-select active" data-dt-watchdog-warn="2">2s</button>
+            <button class="pill-select" data-dt-watchdog-warn="3">3s</button>
+          </div>
+        </div>
+
+        <div class="setup-card hardware-only">
+          <label class="setup-label">DEVICE INTENSITY</label>
+          <div class="slider-box">
+            <input type="range" id="setup-dt-intensity" min="1" max="99" value="20">
+            <span id="setup-dt-intensity-val">20%</span>
+          </div>
+        </div>
+
+        <button id="btn-play-reachcount" class="btn-play">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          PLAY COUNT CLIMB
+        </button>
+      </div>
+    </main>
+
+    <main id="screen-game-reachcount" class="screen">
+      <div class="game-header">
+        <div class="tower-stats-header">
+          <span id="dt-target-pill" class="badge-tower-tag">TARGET: 50 reps</span>
+          <span id="dt-mode-pill" class="badge-intensity-tag">TAPPING PHASE</span>
+        </div>
+      </div>
+
+      <div class="tower-progress-wrapper">
+        <div class="tower-track"><div id="dt-progress-fill" class="tower-fill" style="width: 0%;"></div></div>
+      </div>
+
+      <!-- Advance Warning Banner (Shown before hold begins) -->
+      <div id="dt-prehold-banner" class="prehold-alert hidden">
+        <div class="prehold-title">⚠️ INCOMING SURPRISE HOLD!</div>
+        <div class="prehold-countdown">PREPARE IN <b id="dt-prehold-num">3</b>s</div>
+      </div>
+
+      <div id="dt-arena" class="hold-arena">
+        <div class="arena-overlay">
+          <div class="arena-content">
+            <div id="dt-big-counter" class="big-timer">0 / 50</div>
+            <div id="dt-state-label" class="state-label">TAP TO START REPS</div>
+
+            <div id="dt-surprise-hold-box" class="surprise-hold-box hidden">
+              🚨 HOLD DOWN NOW: <b id="dt-surprise-hold-timer">5.0</b>s
+            </div>
+
+            <div id="dt-idle-alert" class="idle-warning-box hidden">
+              ⚠️ STALLED! CONTINUE TAPPING IN <span id="dt-idle-num">3</span>s OR FEEDBACK!
+            </div>
+
+            <div id="dt-sub-hint" class="sub-hint">Tap screen or cover sensor to advance reps. Stalling triggers shock!</div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- ============================================== -->
+    <!-- GAME 4: PULSE RUNNER (PULSE RUNNER)         -->
+    <!-- ============================================== -->
+    <main id="screen-setup-rhythm" class="screen setup-screen">
+      <div class="setup-hero-banner">
+        <span class="setup-badge badge-beat">PULSE RUNNER</span>
+        <h2>PULSE RUNNER</h2>
+      </div>
+
+      <div class="setup-body">
+        <p class="setup-description">
+          Tap along with your target BPM. A warning and delay give you time to recover if your pace drops. Intro mode starts slower and gradually reaches your selected tempo.
+        </p>
+
+        <div class="setup-card">
+          <label class="setup-label">PACING MODE</label>
+          <div class="pills-row">
+            <button class="pill-select active" data-bpm-mode="standard">Standard</button>
+            <button class="pill-select" data-bpm-mode="intro">Intro (gradual increase)</button>
+          </div>
+          <span class="sub-hint" style="display:block; margin-top:4px;">Intro starts at half the selected tempo and gradually reaches it during the session.</span>
+        </div>
+
+        <div class="setup-card">
+          <label class="setup-label">TARGET TEMPO (BPM)</label>
+          <div class="pills-row">
+            <button class="pill-select" data-bpm-preset="25">25 BPM</button>
+            <button class="pill-select active" data-bpm-preset="35">35 BPM</button>
+            <button class="pill-select" data-bpm-preset="45">45 BPM</button>
+            <button class="pill-select" data-bpm-preset="60">60 BPM</button>
+          </div>
+          <div class="slider-box">
+            <input type="range" id="setup-bpm-slider" min="15" max="90" value="35">
+            <span id="setup-bpm-slider-val">35 BPM</span>
+          </div>
+        </div>
+
+        <div class="setup-card">
+          <label class="setup-label">SESSION DURATION</label>
+          <div class="pills-row">
+            <button class="pill-select" data-bpm-duration="30">30s</button>
+            <button class="pill-select active" data-bpm-duration="45">45s</button>
+            <button class="pill-select" data-bpm-duration="60">60s</button>
+            <button class="pill-select" data-bpm-duration="120">2m</button>
+          </div>
+        </div>
+
+        <div class="setup-card">
+          <label class="setup-label">DELAY BEFORE PENALTY</label>
+          <div class="pills-row">
+            <button class="pill-select" data-bpm-delay="1.5">1.5s</button>
+            <button class="pill-select active" data-bpm-delay="2.5">2.5s</button>
+            <button class="pill-select" data-bpm-delay="4.0">4.0s</button>
+          </div>
+        </div>
+
+        <div class="setup-card">
+          <label class="setup-label">PENALTY TIME ADDED</label>
+          <div class="pills-row">
+            <button class="pill-select" data-bpm-timeadded="3">+3s</button>
+            <button class="pill-select active" data-bpm-timeadded="5">+5s</button>
+            <button class="pill-select" data-bpm-timeadded="10">+10s</button>
+          </div>
+        </div>
+
+        <div class="setup-card">
+          <label class="setup-label">CRITICAL BEAT DEBT LIMIT (PERSISTENT SHOCK)</label>
+          <div class="pills-row">
+            <button class="pill-select" data-bpm-debtlimit="15">15s Pause (~9 beats)</button>
+            <button class="pill-select active" data-bpm-debtlimit="30">30s Pause (~18 beats)</button>
+            <button class="pill-select" data-bpm-debtlimit="45">45s Pause (~26 beats)</button>
+            <button class="pill-select" data-bpm-debtlimit="0">Off</button>
+          </div>
+          <span class="sub-hint" style="display:block; margin-top:4px;">When your beat deficit reaches this limit, device feedback continues until you catch up.</span>
+        </div>
+
+        <div class="setup-card">
+          <label class="setup-label">BPM PACER SOUND (STROKE GUIDE)</label>
+          <div class="pills-row">
+            <button class="pill-select active" data-bpm-cue="down">🔊 Down Cue</button>
+            <button class="pill-select" data-bpm-cue="down_up">🔊 Down + Up</button>
+            <button class="pill-select" data-bpm-cue="off">🔇 Silent</button>
+          </div>
+          <span class="sub-hint" style="display:block; margin-top:4px;">Plays a clear downward beat on every stroke to help you match the selected BPM.</span>
+        </div>
+
+        <div class="setup-card hardware-only">
+          <label class="setup-label">DEVICE INTENSITY</label>
+          <div class="slider-box">
+            <input type="range" id="setup-bpm-intensity" min="1" max="99" value="20">
+            <span id="setup-bpm-intensity-val">20%</span>
+          </div>
+        </div>
+
+        <button id="btn-play-rhythm" class="btn-play">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          PLAY PULSE RUNNER
+        </button>
+      </div>
+    </main>
+
+    <main id="screen-game-rhythm" class="screen">
+      <div class="tower-progress-wrapper">
+        <div class="tower-track"><div id="bpm-progress-bar" class="tower-fill" style="width: 0%;"></div></div>
+      </div>
+
+      <div id="bpm-arena" class="hold-arena bpm-arena">
+        <div class="arena-overlay">
+          <div class="arena-content">
+            <div class="bpm-meta-row">
+              <span>TIME LEFT: <b id="bpm-session-timer">45.0s</b></span>
+              <span id="bpm-debt-pill" class="bpm-debt-badge">BEATS: <b id="bpm-beats-readout">0 / 0</b> (DEBT: <b id="bpm-debt-val">0</b>)</span>
+              <span id="bpm-penalty-tag" class="penalty-tag hidden">+5s PENALTY</span>
+            </div>
+
+            <div id="bpm-pacer-cue" class="pacer-cue-pill">⬇ LISTEN FOR DOWN BEAT</div>
+
+            <div class="cadence-readout">
+              <span id="bpm-live-val" class="bpm-huge">…</span>
+              <span class="bpm-sub">CURRENT BPM &bull; TARGET: <b id="bpm-target-label">35</b><span id="bpm-final-target" class="hidden"> / 35 BPM FINAL</span></span>
+            </div>
+
+            <div id="bpm-debt-alert" class="bpm-debt-critical-box hidden">
+              🚨 CRITICAL BEAT DEBT (<span id="bpm-debt-alert-count">0</span> BEATS BEHIND)! CATCH UP OR PERSISTENT SHOCK!
+            </div>
+
+            <div id="bpm-state-label" class="state-label">START TAPPING TO BEGIN</div>
+            <div id="bpm-delay-bar-container" class="delay-bar-container hidden">
+              <div class="delay-label">PENALTY DELAY: <span id="bpm-delay-num">2.5s</span></div>
+              <div class="delay-track"><div id="bpm-delay-fill" class="delay-fill"></div></div>
+            </div>
+
+            <div id="bpm-sub-hint" class="sub-hint">Tap anywhere to pace. Stopping triggers penalty and shock!</div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- ============================================== -->
+    <!-- GAME 5: HOLD SUMMIT                          -->
+    <!-- ============================================== -->
+    <main id="screen-setup-tower" class="screen setup-screen">
+      <div class="setup-hero-banner">
+        <span class="setup-badge badge-tower">HOLD SUMMIT</span>
+        <h2>HOLD SUMMIT</h2>
+      </div>
+
+      <div class="setup-body">
+        <p class="setup-description">
+          Complete a series of hold levels with rest between them. Early release adds a penalty to the next level, while a clean hold reduces it.
+        </p>
+
+        <div class="setup-card">
+          <label class="setup-label">NUMBER OF FLOORS</label>
+          <div class="pills-row">
+            <button class="pill-select" data-tower-floors="3">3 Floors</button>
+            <button class="pill-select active" data-tower-floors="5">5 Floors</button>
+            <button class="pill-select" data-tower-floors="8">8 Floors</button>
+            <button class="pill-select" data-tower-floors="10">10 Floors</button>
+          </div>
+        </div>
+
+        <div class="setup-card">
+          <label class="setup-label">HOLD DURATION PER FLOOR</label>
+          <div class="pills-row">
+            <button class="pill-select" data-tower-hold-sec="10">10s</button>
+            <button class="pill-select active" data-tower-hold-sec="15">15s</button>
+            <button class="pill-select" data-tower-hold-sec="20">20s</button>
+            <button class="pill-select" data-tower-hold-sec="30">30s</button>
+          </div>
+        </div>
+
+        <div class="setup-card">
+          <label class="setup-label">PERFECT HOLD EXTRA TIME (BONUS ZONE TO HALVE PENALTY)</label>
+          <div class="pills-row">
+            <button class="pill-select active" data-tower-bonus-sec="5">+5s</button>
+            <button class="pill-select" data-tower-bonus-sec="10">+10s</button>
+            <button class="pill-select" data-tower-bonus-sec="15">+15s</button>
+          </div>
+        </div>
+
+        <div class="setup-card">
+          <label class="setup-label">REST BETWEEN FLOORS</label>
+          <div class="pills-row">
+            <button class="pill-select" data-tower-rest-sec="5">5s</button>
+            <button class="pill-select active" data-tower-rest-sec="10">10s</button>
+            <button class="pill-select" data-tower-rest-sec="15">15s</button>
+          </div>
+        </div>
+
+        <div class="setup-card hardware-only">
+          <label class="setup-label">STARTING INTENSITY</label>
+          <div class="pills-row">
+            <button class="pill-select" data-tower-startint="15">15%</button>
+            <button class="pill-select active" data-tower-startint="20">20%</button>
+            <button class="pill-select" data-tower-startint="30">30%</button>
+          </div>
+        </div>
+
+        <div class="setup-card hardware-only">
+          <label class="setup-label">INTENSITY STEP PER FLOOR</label>
+          <div class="pills-row">
+            <button class="pill-select" data-tower-stepint="5">+5%</button>
+            <button class="pill-select active" data-tower-stepint="10">+10%</button>
+            <button class="pill-select" data-tower-stepint="15">+15%</button>
+          </div>
+        </div>
+
+        <div class="setup-card hardware-only">
+          <label class="setup-label">INTENSITY ADDED PER FAILURE (FEEDBACK ESCALATION)</label>
+          <div class="pills-row">
+            <button class="pill-select" data-tower-failstep="3">+3%</button>
+            <button class="pill-select active" data-tower-failstep="5">+5%</button>
+            <button class="pill-select" data-tower-failstep="10">+10%</button>
+          </div>
+        </div>
+
+        <button id="btn-play-tower" class="btn-play">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          CLIMB HOLD SUMMIT
+        </button>
+      </div>
+    </main>
+
+    <main id="screen-game-tower" class="screen">
+      <div class="game-header">
+        <div class="tower-stats-header">
+          <span id="tower-floor-label" class="badge-tower-tag">FLOOR 1 OF 5</span>
+          <span id="tower-penalty-badge" class="penalty-tag hidden">+0% PENALTY</span>
+          <span id="tower-intensity-badge" class="badge-intensity-tag hardware-only">DEVICE: 20%</span>
+        </div>
+      </div>
+
+      <div class="tower-progress-wrapper">
+        <div class="tower-track"><div id="tower-bar-fill" class="tower-fill" style="width: 20%;"></div></div>
+      </div>
+
+      <div id="tower-arena" class="hold-arena">
+        <div class="arena-overlay">
+          <div class="arena-content">
+            <div id="tower-big-timer" class="big-timer">15.0</div>
+            <div id="tower-perfect-banner" class="perfect-banner hidden">🌟 PERFECT HOLD! PENALTY HALVED!</div>
+            <div id="tower-fail-banner" class="fail-banner hidden">⚠️ EARLY RELEASE! INTENSITY +5%</div>
+            <div id="tower-state-label" class="state-label">HOLD DOWN TO CLIMB</div>
+            <div id="tower-sub-hint" class="sub-hint">Hold until floor clears. Releasing shocks!</div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- ============================================== -->
+    <!-- GAME 6: CIRCUIT QUEST                            -->
+    <!-- ============================================== -->
+    <main id="screen-setup-routine" class="screen setup-screen">
+      <div class="setup-hero-banner">
+        <span class="setup-badge badge-dts">CIRCUIT QUEST</span>
+        <h2>CIRCUIT QUEST</h2>
+      </div>
+
+      <div class="setup-body">
+        <p class="setup-description">
+          Follow a guided circuit of rhythm and hold exercises. Choose a difficulty, then work through each step at your own pace within the selected rest limit.
+        </p>
+
+        <div class="setup-card">
+          <label class="setup-label">DIFFICULTY PRESET</label>
+          <div class="pills-row">
+            <button class="pill-select" data-dts-diff="mild">Mild</button>
+            <button class="pill-select active" data-dts-diff="medium">Medium</button>
+            <button class="pill-select" data-dts-diff="hard">Hard</button>
+            <button class="pill-select" data-dts-diff="extreme">Extreme</button>
+          </div>
+        </div>
+
+        <div class="setup-card">
+          <label class="setup-label">INACTIVITY WATCHDOG REST TIME</label>
+          <div class="pills-row">
+            <button class="pill-select" data-dts-rest="5">5s</button>
+            <button class="pill-select active" data-dts-rest="8">8s</button>
+            <button class="pill-select" data-dts-rest="12">12s</button>
+          </div>
+        </div>
+
+        <div class="setup-card">
+          <label class="setup-label">BPM PACER SOUND (STROKE GUIDE)</label>
+          <div class="pills-row">
+            <button class="pill-select active" data-bpm-cue="down">🔊 Down Cue</button>
+            <button class="pill-select" data-bpm-cue="down_up">🔊 Down + Up</button>
+            <button class="pill-select" data-bpm-cue="off">🔇 Silent</button>
+          </div>
+          <span class="sub-hint" style="display:block; margin-top:4px;">Audible down stroke beat during all rhythmic pacing steps.</span>
+        </div>
+
+        <div class="setup-card setup-card-wide">
+          <label class="setup-label">ROUTINE STRUCTURE</label>
+          <div id="dts-plan-list" class="routine-plan-list">
+            <div class="routine-plan-item">
+              <span class="plan-num">1</span>
+              <span class="plan-name">Warmup Rhythm (70 BPM)</span>
+              <span class="plan-badge">PACING</span>
+            </div>
+            <div class="routine-plan-item">
+              <span class="plan-num">2</span>
+              <span class="plan-name">Endurance Hold (20s)</span>
+              <span class="plan-badge">HOLD</span>
+            </div>
+            <div class="routine-plan-item">
+              <span class="plan-num">3</span>
+              <span class="plan-name">Focused Cadence (85 BPM)</span>
+              <span class="plan-badge">PACING</span>
+            </div>
+            <div class="routine-plan-item">
+              <span class="plan-num">4</span>
+              <span class="plan-name">Final Hold (25s)</span>
+              <span class="plan-badge">HOLD</span>
+            </div>
+          </div>
+        </div>
+
+        <button id="btn-play-routine" class="btn-play">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          START CIRCUIT QUEST
+        </button>
+      </div>
+    </main>
+
+    <main id="screen-game-routine" class="screen">
+      <div class="game-header">
+        <div class="routine-meta-header">
+          <span id="dts-step-pill" class="step-pill">STEP 1 OF 4</span>
+          <span id="dts-type-pill" class="type-pill">PACING EXERCISE</span>
+        </div>
+      </div>
+
+      <div id="dts-arena" class="hold-arena">
+        <div class="arena-overlay">
+          <div class="arena-content">
+            <div id="dts-pacer-cue" class="pacer-cue-pill hidden">⬇ LISTEN FOR DOWN BEAT</div>
+            <h2 id="dts-task-title" class="dts-title">Warmup Rhythm</h2>
+            <div id="dts-big-timer" class="big-timer">25.0</div>
+            <div id="dts-state-label" class="state-label">TAP TO PACE</div>
+
+            <div id="dts-idle-alert" class="idle-warning-box hidden">
+              ⚠️ WATCHDOG: START NEXT TASK IN <span id="dts-idle-count">8</span>s OR FEEDBACK!
+            </div>
+
+            <div id="dts-sub-hint" class="sub-hint">Complete each step and begin the next before the rest timer expires.</div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- ============================================== -->
+    <!-- GAME 7: HIDDEN TIMER (THE VOID / DEEP HOLD)    -->
+    <!-- ============================================== -->
+    <main id="screen-setup-blindhilt" class="screen setup-screen">
+      <div class="setup-hero-banner">
+        <span class="setup-badge badge-blind">HIDDEN TIMER</span>
+        <h2>HIDDEN TIMER</h2>
+      </div>
+
+      <div class="setup-body">
+        <p class="setup-description">
+          A timed hold with the countdown hidden. Choose a range and number of rounds, then maintain contact until you hear the release cue. Releasing early applies your selected penalty.
+        </p>
+
+        <!-- Min Hold Duration -->
+        <div class="setup-card">
+          <label class="setup-label">MINIMUM HOLD DURATION (HIDDEN TARGET FLOOR)</label>
+          <div class="pills-row">
+            <button class="pill-select" data-bh-min="15">15s</button>
+            <button class="pill-select active" data-bh-min="20">20s</button>
+            <button class="pill-select" data-bh-min="30">30s</button>
+            <button class="pill-select" data-bh-min="45">45s</button>
+            <button class="pill-select" data-bh-min="60">60s</button>
+          </div>
+        </div>
+
+        <!-- Max Hold Duration -->
+        <div class="setup-card">
+          <label class="setup-label">MAXIMUM HOLD DURATION (HIDDEN TARGET CEILING)</label>
+          <div class="pills-row">
+            <button class="pill-select" data-bh-max="30">30s</button>
+            <button class="pill-select" data-bh-max="45">45s</button>
+            <button class="pill-select active" data-bh-max="60">60s</button>
+            <button class="pill-select" data-bh-max="90">90s</button>
+            <button class="pill-select" data-bh-max="120">2m</button>
+          </div>
+        </div>
+
+        <!-- Total Rounds / Sets -->
+        <div class="setup-card">
+          <label class="setup-label">TOTAL ROUNDS / SETS</label>
+          <div class="pills-row">
+            <button class="pill-select" data-bh-rounds="3">3</button>
+            <button class="pill-select active" data-bh-rounds="5">5</button>
+            <button class="pill-select" data-bh-rounds="8">8</button>
+            <button class="pill-select" data-bh-rounds="10">10</button>
+            <button class="pill-select" data-bh-rounds="0">∞</button>
+          </div>
+        </div>
+
+        <!-- Rest Interval Between Rounds -->
+        <div class="setup-card">
+          <label class="setup-label">REST BETWEEN ROUNDS</label>
+          <div class="pills-row">
+            <button class="pill-select" data-bh-rest="5">5s</button>
+            <button class="pill-select" data-bh-rest="10">10s</button>
+            <button class="pill-select active" data-bh-rest="15">15s</button>
+            <button class="pill-select" data-bh-rest="20">20s</button>
+            <button class="pill-select" data-bh-rest="30">30s</button>
+          </div>
+        </div>
+
+        <!-- Audio Atmosphere -->
+        <div class="setup-card">
+          <label class="setup-label">AUDIO CUE ATMOSPHERE</label>
+          <div class="pills-row">
+            <button class="pill-select active" data-bh-audio="rising">Rising Pitch</button>
+            <button class="pill-select" data-bh-audio="heartbeat">Heartbeat Pacer</button>
+            <button class="pill-select" data-bh-audio="silent">Silent</button>
+          </div>
+          <p class="sub-hint" id="bh-audio-hint" style="margin-top: 8px;">A low tone gently rises as the release cue approaches.</p>
+        </div>
+
+        <!-- Early Release Consequence -->
+        <div class="setup-card">
+          <label class="setup-label">EARLY RELEASE PENALTY</label>
+          <div class="pills-row">
+            <button class="pill-select active" data-bh-penalty="+10">+10s Penalty</button>
+            <button class="pill-select" data-bh-penalty="+15">+15s Penalty</button>
+            <button class="pill-select" data-bh-penalty="restart">Restart Round</button>
+          </div>
+        </div>
+
+        <!-- Device intensity -->
+        <div class="setup-card hardware-only">
+          <label class="setup-label">DEVICE INTENSITY</label>
+          <div class="slider-box">
+            <input type="range" id="setup-bh-intensity" min="1" max="99" value="20">
+            <span id="setup-bh-intensity-val">20%</span>
+          </div>
+        </div>
+
+        <button id="btn-play-blindhilt" class="btn-play">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          START HIDDEN TIMER
+        </button>
+      </div>
+    </main>
+
+    <!-- ACTIVE GAME: HIDDEN TIMER -->
+    <main id="screen-game-blindhilt" class="screen">
+      <div class="game-header">
+        <div class="tower-stats-header">
+          <span id="bh-round-pill" class="badge-tower-tag">ROUND 1 / 5</span>
+          <span id="bh-intensity-pill" class="badge-intensity-tag hardware-only">DEVICE: 20%</span>
+        </div>
+      </div>
+
+      <div class="tower-progress-wrapper">
+        <div class="tower-track"><div id="bh-progress-fill" class="tower-fill" style="width: 0%;"></div></div>
+      </div>
+
+      <div id="bh-arena" class="hold-arena">
+        <div class="arena-overlay">
+          <div class="arena-content">
+            <!-- Void Orb with animated pulse & rings -->
+            <div class="void-orb-container">
+              <div class="void-orb-ring"></div>
+              <div id="bh-void-orb" class="void-orb void-orb-pulse">
+                <span id="bh-void-icon" class="void-glyph">🔒</span>
+              </div>
+            </div>
+
+            <div id="bh-main-text" class="big-timer">TIMER HIDDEN</div>
+            <div id="bh-state-label" class="state-label">HOLD DOWN AT TARGET POSITION</div>
+
+            <div id="bh-idle-alert" class="idle-warning-box hidden">
+              ⚠️ REST EXPIRED! RETURN TO TARGET IN <span id="bh-idle-num">3</span>s OR FEEDBACK!
+            </div>
+
+            <div id="bh-sub-hint" class="sub-hint">Timer is hidden. Hold unbroken contact until the release chime.</div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- ============================================== -->
+    <!-- GAME 8: TEMPO ASCENT (ACCELERATING BPM & HOLDS) -->
+    <!-- ============================================== -->
+    <main id="screen-setup-tempoescalation" class="screen setup-screen">
+      <div class="setup-hero-banner">
+        <span class="setup-badge badge-escalation">TEMPO ASCENT</span>
+        <h2>TEMPO ASCENT</h2>
+      </div>
+
+      <div class="setup-body">
+        <p class="setup-description">
+          Work through stages that combine rhythm and endurance. The beat <b>speeds up across stages</b>, and each stage ends with a timed hold.
+        </p>
+
+        <div class="setup-card">
+          <label class="setup-label">NUMBER OF STAGES</label>
+          <div class="pills-row">
+            <button class="pill-select" data-te-stages="3">3 Stages</button>
+            <button class="pill-select active" data-te-stages="5">5 Stages</button>
+            <button class="pill-select" data-te-stages="7">7 Stages</button>
+          </div>
+        </div>
+
+        <div class="setup-card">
+          <label class="setup-label">STARTING TEMPO &amp; BPM ACCELERATION</label>
+          <div class="pills-row">
+            <button class="pill-select" data-te-startbpm="20" data-te-stepbpm="5">20 &rarr; +5 BPM</button>
+            <button class="pill-select active" data-te-startbpm="30" data-te-stepbpm="8">30 &rarr; +8 BPM</button>
+            <button class="pill-select" data-te-startbpm="40" data-te-stepbpm="10">40 &rarr; +10 BPM</button>
+          </div>
+          <span class="sub-hint" style="display:block; margin-top:4px;">Stage 1 starts at this BPM and accelerates by the step on each subsequent stage.</span>
+        </div>
+
+        <div class="setup-card">
+          <label class="setup-label">PACING DURATION PER STAGE</label>
+          <div class="pills-row">
+            <button class="pill-select" data-te-pacing-sec="15">15s Pacing</button>
+            <button class="pill-select active" data-te-pacing-sec="20">20s Pacing</button>
+            <button class="pill-select" data-te-pacing-sec="30">30s Pacing</button>
+          </div>
+        </div>
+
+        <div class="setup-card">
+          <label class="setup-label">FINISHING HOLD PER STAGE</label>
+          <div class="pills-row">
+            <button class="pill-select" data-te-hold-sec="8">8s Hold</button>
+            <button class="pill-select active" data-te-hold-sec="12">12s Hold</button>
+            <button class="pill-select" data-te-hold-sec="18">18s Hold</button>
+          </div>
+          <span class="sub-hint" style="display:block; margin-top:4px;">Complete a steady hold at the end of the pacing phase to clear each stage.</span>
+        </div>
+
+        <div class="setup-card">
+          <label class="setup-label">REST BETWEEN STAGES</label>
+          <div class="pills-row">
+            <button class="pill-select" data-te-rest-sec="5">5s</button>
+            <button class="pill-select active" data-te-rest-sec="8">8s</button>
+            <button class="pill-select" data-te-rest-sec="12">12s</button>
+          </div>
+        </div>
+
+        <div class="setup-card hardware-only">
+          <label class="setup-label">STARTING INTENSITY &amp; ESCALATION</label>
+          <div class="pills-row">
+            <button class="pill-select" data-te-startint="15" data-te-stepint="5">15% (+5%/stg)</button>
+            <button class="pill-select active" data-te-startint="20" data-te-stepint="8">20% (+8%/stg)</button>
+            <button class="pill-select" data-te-startint="25" data-te-stepint="10">25% (+10%/stg)</button>
+          </div>
+        </div>
+
+        <div class="setup-card">
+          <label class="setup-label">BPM PACER SOUND (STROKE GUIDE)</label>
+          <div class="pills-row">
+            <button class="pill-select active" data-bpm-cue="down">🔊 Down Cue</button>
+            <button class="pill-select" data-bpm-cue="down_up">🔊 Down + Up</button>
+            <button class="pill-select" data-bpm-cue="off">🔇 Silent</button>
+          </div>
+          <span class="sub-hint" style="display:block; margin-top:4px;">Plays a deep downward beat that speeds up automatically with each stage.</span>
+        </div>
+
+        <button id="btn-play-tempoescalation" class="btn-play">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          START TEMPO ASCENT
+        </button>
+      </div>
+    </main>
+
+    <!-- ACTIVE GAME: TEMPO ASCENT -->
+    <main id="screen-game-tempoescalation" class="screen">
+      <div class="game-header">
+        <div class="tower-stats-header">
+          <span id="te-stage-pill" class="badge-tower-tag">STAGE 1 OF 5</span>
+          <span id="te-phase-badge" class="badge-tower-tag" style="border-color: var(--crimson-accent); color: var(--crimson-accent);">PACING PHASE</span>
+          <span id="te-intensity-pill" class="badge-intensity-tag hardware-only">DEVICE: 20%</span>
+        </div>
+      </div>
+
+      <div class="tower-progress-wrapper">
+        <div class="tower-track"><div id="te-progress-fill" class="tower-fill" style="width: 0%;"></div></div>
+      </div>
+
+      <!-- Advance warning before final hold begins -->
+      <div id="te-prehold-banner" class="prehold-alert hidden">
+        <div class="prehold-title">🔒 PREPARE FOR FINAL HOLD!</div>
+        <div class="prehold-countdown">LOCK IN <b id="te-prehold-num">3</b>s</div>
+      </div>
+
+      <div id="te-arena" class="hold-arena">
+        <div class="arena-overlay">
+          <div class="arena-content">
+            <div class="bpm-meta-row" style="width: 100%; max-width: 320px;">
+              <span>TIMER: <b id="te-phase-timer">20.0s</b></span>
+              <span id="te-debt-pill" class="bpm-debt-badge">BEATS: <b id="te-beats-readout">0 / 0</b> (DEBT: <b id="te-debt-val">0</b>)</span>
+            </div>
+
+            <div id="te-pacer-cue" class="pacer-cue-pill">⬇ LISTEN FOR DOWN BEAT</div>
+
+            <div id="te-cadence-box" class="cadence-readout">
+              <span id="te-live-bpm" class="bpm-huge">…</span>
+              <span class="bpm-sub">CADENCE &bull; TARGET: <b id="te-target-bpm">30 BPM</b></span>
+            </div>
+
+            <div id="te-hold-box" class="cadence-readout hidden">
+              <span id="te-hold-timer" class="bpm-huge" style="color: var(--amber-warning); text-shadow: 0 0 30px rgba(245, 158, 11, 0.5);">12.0</span>
+              <span class="bpm-sub" style="color: var(--amber-warning);">FINAL HOLD REQUIRED</span>
+            </div>
+
+            <div id="te-state-label" class="state-label">TAP TO START PACING</div>
+
+            <div id="te-delay-box" class="delay-bar-container hidden">
+              <div class="delay-label">PENALTY DELAY: <span id="te-delay-num">2.0s</span></div>
+              <div class="delay-track"><div id="te-delay-fill" class="delay-fill"></div></div>
+            </div>
+
+            <div id="te-idle-alert" class="idle-warning-box hidden">
+              ⚠️ REST EXPIRED! TAP TO START STAGE IN <span id="te-idle-num">3</span>s OR FEEDBACK!
+            </div>
+
+            <div id="te-sub-hint" class="sub-hint">Match the target tempo, then complete the hold to clear the stage.</div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- ACTIVE GAME: PRISON SENSOR TASK ARENA -->
+    <main id="screen-game-prison" class="screen">
+      <div class="game-header">
+        <div class="tower-stats-header">
+          <span id="prison-game-tier-pill" class="badge-tower-tag">BASIC X=1</span>
+          <span id="prison-game-stage-pill" class="badge-tower-tag">STAGE 1 OF 1</span>
+          <span id="prison-game-stake-pill" class="badge-tower-tag">+2 PTS / -2 PTS</span>
+          <span id="prison-game-intensity-pill" class="badge-intensity-tag hardware-only">DEVICE: 20%</span>
+        </div>
+      </div>
+
+      <div class="tower-progress-wrapper">
+        <div class="tower-track"><div id="prison-game-progress-fill" class="tower-fill" style="width: 0%;"></div></div>
+      </div>
+
+      <div id="prison-arena" class="hold-arena">
+        <div class="arena-overlay">
+          <div class="arena-content">
+            <div class="prison-arena-top">
+              <img id="prison-arena-img" class="prison-arena-thumb card-image" src="images/prison/basic-1.webp" alt="">
+              <div class="prison-arena-meta">
+                <div id="prison-arena-title" class="prison-arena-title">Deepthroat 50 times</div>
+                <div id="prison-arena-rule" class="prison-arena-rule">Complete 50 full sensor reps.</div>
+              </div>
+            </div>
+
+            <div class="bpm-meta-row" style="width: 100%; max-width: 360px;">
+              <span id="prison-timer-box">TIME: <b id="prison-game-timer">0.0s</b></span>
+              <span id="prison-break-box">MAX BREAK: <b id="prison-game-break">—</b></span>
+              <span id="prison-debt-pill" class="bpm-debt-badge hidden">BEATS: <b id="prison-beats-readout">0 / 0</b> (DEBT: <b id="prison-debt-val">0</b>)</span>
+            </div>
+
+            <div id="prison-pacer-cue" class="pacer-cue-pill hidden">⬇ LISTEN FOR DOWN BEAT</div>
+
+            <div class="cadence-readout">
+              <span id="prison-game-primary" class="bpm-huge">0 / 50</span>
+              <span id="prison-game-unit" class="bpm-sub">REPS COMPLETED</span>
+            </div>
+
+            <div id="prison-state-label" class="state-label">ENGAGE SENSOR TO START</div>
+
+            <div id="prison-delay-box" class="delay-bar-container hidden">
+              <div class="delay-label">PACE / BREAK LIMIT: <span id="prison-delay-num">4.0s</span></div>
+              <div class="delay-track"><div id="prison-delay-fill" class="delay-fill"></div></div>
+            </div>
+
+            <div id="prison-sub-hint" class="sub-hint">Reach the target line or hold Space/Touch to begin the assignment.</div>
+
+            <div class="prison-arena-actions">
+              <button id="btn-prison-forfeit" type="button" class="btn-secondary-small">Forfeit Task (Deduct Points &amp; Punish)</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Global Punishment Overlay Flash -->
+    <div id="punishment-flash" class="punish-overlay hidden">
+      <div class="punish-box">
+        <span class="punish-icon">⚡</span>
+        <span id="punish-text">FEEDBACK ACTIVE</span>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
