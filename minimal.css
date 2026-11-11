@@ -1554,3 +1554,226 @@ body[data-game-state="stalling"] .tower-stats-header * {
     width: 100%;
   }
 }
+
+/* Daily Discipline Punch-Card Calendar */
+.punchcard-divider {
+  height: 1px;
+  background: #222;
+  margin: 18px 0;
+  width: 100%;
+}
+
+.workout-punchcard-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.workout-punchcard-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.workout-punchcard-kicker {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: #888;
+  text-transform: uppercase;
+}
+
+.workout-punchcard-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #fff;
+  margin: 2px 0 0;
+}
+
+.workout-punchcard-stat-badge {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #4ade80;
+  background: rgba(74, 222, 128, 0.12);
+  border: 1px solid rgba(74, 222, 128, 0.3);
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-family: var(--font-mono, monospace);
+  letter-spacing: 0.04em;
+}
+
+.workout-punchcard-grid-header {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  text-align: center;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #666;
+  letter-spacing: 0.08em;
+  margin-top: 4px;
+}
+
+.workout-punchcard-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  width: 100%;
+}
+
+.punchcard-cell {
+  aspect-ratio: 1 / 1;
+  min-height: 34px;
+  background: #111;
+  border: 1px solid #282828;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  position: relative;
+  user-select: none;
+}
+
+.punchcard-cell:hover {
+  border-color: #888;
+  transform: translateY(-2px);
+  z-index: 2;
+}
+
+.punchcard-cell.selected {
+  outline: 2px solid #fff;
+  outline-offset: 1px;
+}
+
+.punchcard-cell.is-today {
+  border: 1.5px solid #fff !important;
+}
+
+.punchcard-cell.is-today::after {
+  content: "";
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #fff;
+}
+
+/* Day Number inside punchcard cell */
+.punchcard-cell .cell-day-num {
+  font-size: 0.72rem;
+  font-weight: 700;
+  font-family: var(--font-mono, monospace);
+  line-height: 1;
+}
+
+/* Distinct Activity Colors for Modes */
+.punchcard-cell.tier-none {
+  background: #0e0e0e;
+  border-color: #222;
+  color: #555;
+}
+
+.punchcard-cell.tier-future {
+  background: #090909;
+  border-color: #1a1a1a;
+  border-style: dashed;
+  color: #333;
+  cursor: default;
+  transform: none !important;
+}
+
+.punchcard-cell.tier-workout-5 {
+  background: rgba(6, 182, 212, 0.22);
+  border-color: #06b6d4;
+  color: #67e8f9;
+  box-shadow: 0 0 10px rgba(6, 182, 212, 0.25);
+}
+
+.punchcard-cell.tier-workout-10 {
+  background: rgba(16, 185, 129, 0.22);
+  border-color: #10b981;
+  color: #6ee7b7;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.25);
+}
+
+.punchcard-cell.tier-workout-15 {
+  background: rgba(168, 85, 247, 0.22);
+  border-color: #a855f7;
+  color: #d8b4fe;
+  box-shadow: 0 0 10px rgba(168, 85, 247, 0.25);
+}
+
+.punchcard-cell.tier-workout-20 {
+  background: rgba(245, 158, 11, 0.22);
+  border-color: #f59e0b;
+  color: #fde68a;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.25);
+}
+
+.punchcard-cell.tier-prison {
+  background: rgba(239, 68, 68, 0.22);
+  border-color: #ef4444;
+  color: #fca5a5;
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.25);
+}
+
+.punchcard-cell.tier-session {
+  background: rgba(99, 102, 241, 0.22);
+  border-color: #6366f1;
+  color: #a5b4fc;
+  box-shadow: 0 0 10px rgba(99, 102, 241, 0.25);
+}
+
+/* Detail Readout Box */
+.workout-punchcard-detail {
+  padding: 10px 14px;
+  background: #090909;
+  border: 1px solid #222;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  color: #ccc;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  line-height: 1.4;
+}
+
+/* Punch-card legend */
+.workout-punchcard-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 0.72rem;
+  color: #777;
+  align-items: center;
+  padding-top: 4px;
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.dot-workout-5 { background: #06b6d4; }
+.dot-workout-10 { background: #10b981; }
+.dot-workout-15 { background: #a855f7; }
+.dot-workout-20 { background: #f59e0b; }
+.dot-prison { background: #ef4444; }
+.dot-session { background: #6366f1; }
+.dot-none { background: #222; border: 1px solid #444; }

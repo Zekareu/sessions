@@ -287,6 +287,46 @@
               <div style="font-size: 0.76rem; letter-spacing: 0.1em; color: #aaa; text-transform: uppercase; margin-top: 2px;">Sessions Cleared</div>
             </div>
           </div>
+
+          <!-- Divider -->
+          <div class="punchcard-divider"></div>
+
+          <!-- Punch-Card Streak Calendar -->
+          <div class="workout-punchcard-wrap">
+            <div class="workout-punchcard-head">
+              <div>
+                <span class="workout-punchcard-kicker">DISCIPLINE PUNCH-CARD</span>
+                <h3 class="workout-punchcard-title">Training Activity (Past 4 Weeks)</h3>
+              </div>
+              <div class="workout-punchcard-stat-badge" id="workout-month-active-badge">0 Active Days</div>
+            </div>
+
+            <!-- Day Headers (Mon - Sun) -->
+            <div class="workout-punchcard-grid-header">
+              <span>MON</span><span>TUE</span><span>WED</span><span>THU</span><span>FRI</span><span>SAT</span><span>SUN</span>
+            </div>
+
+            <!-- Punch-Card Day Cells -->
+            <div id="workout-punchcard-grid" class="workout-punchcard-grid" role="grid" aria-label="Training Punch-Card Calendar">
+              <!-- Dynamically populated -->
+            </div>
+
+            <!-- Selected Day Detail Readout -->
+            <div id="workout-punchcard-detail" class="workout-punchcard-detail">
+              <span id="workout-punchcard-detail-text">Tap any day cell to view session details.</span>
+            </div>
+
+            <!-- Color Legend -->
+            <div class="workout-punchcard-legend">
+              <div class="legend-item"><span class="legend-dot dot-workout-5"></span> 5m Express</div>
+              <div class="legend-item"><span class="legend-dot dot-workout-10"></span> 10m Standard</div>
+              <div class="legend-item"><span class="legend-dot dot-workout-15"></span> 15m Intensive</div>
+              <div class="legend-item"><span class="legend-dot dot-workout-20"></span> 20m Endurance</div>
+              <div class="legend-item"><span class="legend-dot dot-prison"></span> Prison</div>
+              <div class="legend-item"><span class="legend-dot dot-session"></span> Session</div>
+              <div class="legend-item"><span class="legend-dot dot-none"></span> Rest Day</div>
+            </div>
+          </div>
         </div>
 
         <!-- Workout Routine Selection Header -->

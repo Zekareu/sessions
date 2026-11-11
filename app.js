@@ -72,6 +72,185 @@ function playTone(freq, durationMs, type = "sine") {
 }
 
 // ==========================================
+// ATHLETIC AUDIO CUE SUITE (NON-CRINGE, TACTILE)
+// ==========================================
+
+let countdownAudioState = {
+  lastHoldSec: null,
+  lastRestSec: null
+};
+
+function resetCountdownAudio() {
+  countdownAudioState.lastHoldSec = null;
+  countdownAudioState.lastRestSec = null;
+}
+
+/**
+ * Resonant confirmation chime (A4 440Hz + E5 659Hz) when the subject locks into depth.
+ */
+function playHoldLockCue() {
+  try {
+    const ctx = getAudio();
+    const t0 = ctx.currentTime;
+    const osc1 = ctx.createOscillator();
+    const osc2 = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc1.type = "sine";
+    osc2.type = "sine";
+    osc1.frequency.setValueAtTime(440, t0);
+    osc2.frequency.setValueAtTime(659.25, t0);
+    gain.gain.setValueAtTime(0.18, t0);
+    gain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.16);
+    osc1.connect(gain);
+    osc2.connect(gain);
+    gain.connect(ctx.destination);
+    osc1.start(t0);
+    osc2.start(t0);
+    osc1.stop(t0 + 0.16);
+    osc2.stop(t0 + 0.16);
+  } catch (_) {}
+}
+
+/**
+ * Crisp countdown ticks at 3s, 2s, 1s before a hold or drill ends.
+ */
+function playCountdownTick(secondsRemaining) {
+  try {
+    const ctx = getAudio();
+    const t0 = ctx.currentTime;
+    const freqs = { 3: 740, 2: 880, 1: 1046.5 };
+    const freq = freqs[secondsRemaining] || 880;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(freq, t0);
+    gain.gain.setValueAtTime(0.20, t0);
+    gain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.05);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(t0);
+    osc.stop(t0 + 0.055);
+  } catch (_) {}
+}
+
+/**
+ * Clean two-tone release cue (C6 1046Hz -> E6 1318Hz) signalling hold completion and breath release.
+ */
+function playHoldReleaseCue() {
+  try {
+    const ctx = getAudio();
+    const t0 = ctx.currentTime;
+    const osc1 = ctx.createOscillator();
+    const gain1 = ctx.createGain();
+    osc1.type = "sine";
+    osc1.frequency.setValueAtTime(1046.5, t0);
+    gain1.gain.setValueAtTime(0.19, t0);
+    gain1.gain.exponentialRampToValueAtTime(0.001, t0 + 0.11);
+    osc1.connect(gain1);
+    gain1.connect(ctx.destination);
+    osc1.start(t0);
+    osc1.stop(t0 + 0.11);
+
+    const t1 = t0 + 0.08;
+    const osc2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    osc2.type = "sine";
+    osc2.frequency.setValueAtTime(1318.5, t1);
+    gain2.gain.setValueAtTime(0.22, t1);
+    gain2.gain.exponentialRampToValueAtTime(0.001, t1 + 0.22);
+    osc2.connect(gain2);
+    gain2.connect(ctx.destination);
+    osc2.start(t1);
+    osc2.stop(t1 + 0.22);
+  } catch (_) {}
+}
+
+/**
+ * Gentle warm pings at 3s, 2s, 1s of breath break before the next hold/drill arms.
+ */
+function playRestWarningTick(secondsRemaining) {
+  try {
+    const ctx = getAudio();
+    const t0 = ctx.currentTime;
+    const freqs = { 3: 440, 2: 494, 1: 554 };
+    const freq = freqs[secondsRemaining] || 440;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = "triangle";
+    osc.frequency.setValueAtTime(freq, t0);
+    gain.gain.setValueAtTime(0.14, t0);
+    gain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.08);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(t0);
+    osc.stop(t0 + 0.085);
+  } catch (_) {}
+}
+
+/**
+ * Tactile micro-haptic acoustic click for cards, pills, and navigation.
+ */
+function playTactileClick() {
+  try {
+    const ctx = getAudio();
+    const t0 = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(1100, t0);
+    osc.frequency.exponentialRampToValueAtTime(320, t0 + 0.016);
+    gain.gain.setValueAtTime(0.05, t0);
+    gain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.018);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(t0);
+    osc.stop(t0 + 0.018);
+  } catch (_) {}
+}
+
+/**
+ * Ascending clean athletic chord fanfare (C5, E5, G5, C6) on victory.
+ */
+function playStageClearChime() {
+  try {
+    const ctx = getAudio();
+    const t0 = ctx.currentTime;
+    const notes = [523.25, 659.25, 783.99, 1046.50];
+    notes.forEach((freq, idx) => {
+      const t = t0 + idx * 0.11;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(freq, t);
+      gain.gain.setValueAtTime(0.18, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.32);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(t);
+      osc.stop(t + 0.32);
+    });
+  } catch (_) {}
+}
+
+function checkHoldCountdownAudio(remainingSec) {
+  if (remainingSec <= 0) return;
+  const wholeSec = Math.ceil(remainingSec);
+  if (wholeSec <= 3 && wholeSec >= 1 && wholeSec !== countdownAudioState.lastHoldSec) {
+    countdownAudioState.lastHoldSec = wholeSec;
+    playCountdownTick(wholeSec);
+  }
+}
+
+function checkRestCountdownAudio(remainingSec) {
+  if (remainingSec <= 0) return;
+  const wholeSec = Math.ceil(remainingSec);
+  if (wholeSec <= 3 && wholeSec >= 1 && wholeSec !== countdownAudioState.lastRestSec) {
+    countdownAudioState.lastRestSec = wholeSec;
+    playRestWarningTick(wholeSec);
+  }
+}
+
+// ==========================================
 // 1B. BPM STROKE PACER ("DOWN" & OPTIONAL "UP" AUDIO CUES)
 // ==========================================
 let bpmPacerTicker = null;
@@ -578,6 +757,7 @@ function initSessionSharing() {
 }
 
 function setHubView(view) {
+  playTactileClick();
   const hub = document.getElementById("screen-hub");
   const sessionsTab = document.getElementById("tab-sessions");
   const workoutTab = document.getElementById("tab-workout");
@@ -1070,15 +1250,14 @@ function handleHoldChallengeLogic(isDown) {
           // VICTORY!
           clearInterval(hcTicker);
           hcPhase = "won";
+          playHoldReleaseCue();
+          playStageClearChime();
           sendRewardOnce("holdchallenge");
+          recordTrainingSession("session-holddebt", Math.max(1, Math.round(hcDebtTarget / 60)), "Hold Debt Cleared");
           arena.classList.remove("holding");
           label.textContent = "🏆 CHALLENGE COMPLETE! DEBT PAID!";
           subHint.textContent = "Great work! You cleared all debt. You can release now.";
           updateHoldChallengeUI();
-
-          playTone(523, 120);
-          setTimeout(() => playTone(659, 120), 120);
-          setTimeout(() => playTone(784, 300), 240);
         }
       }
     }, 100);
@@ -1317,7 +1496,7 @@ function handleHoldDearLifeLogic(isDown) {
 
   if (isDown) {
     stopPunishLoop(); // Shocks stop immediately on holding!
-    playTone(600, 80);
+    playHoldLockCue();
 
     if (hdlHasWon) return;
 
@@ -1333,22 +1512,25 @@ function handleHoldDearLifeLogic(isDown) {
       hdlElapsedSeconds += 0.1;
       updateHdlUI();
 
+      if (hdlDisplayMode !== "hidden") {
+        const remHold = Math.max(0, hdlTargetDuration - hdlElapsedSeconds);
+        checkHoldCountdownAudio(remHold);
+      }
+
       if (hdlElapsedSeconds >= hdlTargetDuration) {
         // VICTORY!
         clearInterval(hdlTicker);
         hdlHasWon = true;
+        playHoldReleaseCue();
+        playStageClearChime();
         sendRewardOnce("holddearlife");
+        recordTrainingSession("session-lastinghold", Math.max(1, Math.round(hdlTargetDuration / 60)), "Lasting Hold Cleared");
         stopPunishLoop();
 
         const timer = document.getElementById("hdl-big-timer");
         timer.textContent = `${hdlTargetDuration}.0s`;
 
         setUnifiedGameState("can-release", "🏆 YOU SURVIVED LASTING HOLD!", `Great work! You survived the random duration of ${hdlTargetDuration}s without breaking!`);
-
-        playTone(523, 120);
-        setTimeout(() => playTone(659, 120), 120);
-        setTimeout(() => playTone(784, 150), 240);
-        setTimeout(() => playTone(1046, 350), 380);
       }
     }, 100);
 
@@ -1543,11 +1725,10 @@ function advanceReachCountRep() {
   // Check victory
   if (dtCurrentReps >= dtTargetCount) {
     stopReachCountGame();
+    playStageClearChime();
     sendRewardOnce("reachcount");
+    recordTrainingSession("session-reachcount", 2, "Count Climb Cleared");
     setUnifiedGameState("can-release", "🏆 CHALLENGE COMPLETE!", "Great work! Target reached flawlessly.");
-    playTone(523, 120);
-    setTimeout(() => playTone(659, 120), 120);
-    setTimeout(() => playTone(784, 300), 240);
     return;
   }
 
@@ -2048,11 +2229,10 @@ function startBpmEngines() {
 
       if (bpmSessionRemaining <= 0) {
         stopBpmGame();
+        playStageClearChime();
         sendRewardOnce("rhythm");
+        recordTrainingSession("session-rhythm", Math.max(1, Math.round(bpmSessionTargetDuration / 60)), "Pulse Runner Cleared");
         setUnifiedGameState("can-release", "🏆 PULSE RUNNER COMPLETE!", `Session cleared! Finished with ${bpmActualBeats} beats.`);
-        playTone(523, 120);
-        setTimeout(() => playTone(659, 120), 120);
-        setTimeout(() => playTone(784, 300), 240);
       }
     } else {
       delayContainer.classList.remove("hidden");
@@ -2445,11 +2625,11 @@ function onTowerFloorCleared(isPerfect = false) {
 
   } else {
     towerPhase = "conquered";
+    playHoldReleaseCue();
+    playStageClearChime();
     sendRewardOnce("tower");
+    recordTrainingSession("session-tower", 3, "Hold Summit Cleared");
     setUnifiedGameState("can-release", "🏆 HOLD SUMMIT CONQUERED!", isPerfect ? "FLAWLESS HOLD SUMMIT! Incredible endurance." : "Hold Summit completed! Great job!");
-    playTone(523, 150);
-    setTimeout(() => playTone(659, 150), 150);
-    setTimeout(() => playTone(784, 350), 300);
   }
 }
 
@@ -2720,11 +2900,11 @@ function onDtsExerciseCompleted() {
 
   } else {
     dtsPhase = "complete";
+    playHoldReleaseCue();
+    playStageClearChime();
     sendRewardOnce("routine");
+    recordTrainingSession("session-routine", 3, "Circuit Quest Cleared");
     setUnifiedGameState("can-release", "🏆 CIRCUIT QUEST COMPLETE!", "All routine exercises completed. Well done!");
-    playTone(523, 150);
-    setTimeout(() => playTone(659, 150), 150);
-    setTimeout(() => playTone(784, 350), 300);
   }
 }
 
@@ -3105,12 +3285,13 @@ function startBlindHiltHoldTicker() {
 }
 
 function onBlindHiltRoundCleared() {
-  playTone(528, 300, "sine");
-  setTimeout(() => playTone(880, 500, "sine"), 180);
+  playHoldReleaseCue();
 
   if (bhTotalRounds > 0 && bhCurrentRound >= bhTotalRounds) {
     bhPhase = "won";
+    playStageClearChime();
     sendRewardOnce("blindhilt");
+    recordTrainingSession("session-blindhilt", 2, "Hidden Timer Cleared");
     updateBlindHiltUI();
   } else {
     bhPhase = "resting";
@@ -3672,13 +3853,13 @@ function startTempoEscalationHoldPhase() {
 }
 
 function onTempoEscalationStageCleared() {
-  playTone(523, 120);
-  setTimeout(() => playTone(659, 120), 120);
-  setTimeout(() => playTone(880, 250), 240);
+  playHoldReleaseCue();
 
   if (teCurrentStage >= teTotalStages) {
     tePhase = "won";
+    playStageClearChime();
     sendRewardOnce("tempoescalation");
+    recordTrainingSession("session-tempoescalation", 3, "Tempo Ascent Cleared");
     updateTempoEscalationUI();
   } else {
     teCurrentStage++;
@@ -5427,6 +5608,7 @@ window.addEventListener("blur", () => {
 // Game Cards on Hub
 document.querySelectorAll(".game-card[data-game]").forEach(card => {
   card.addEventListener("click", () => {
+    playTactileClick();
     const game = card.getAttribute("data-game");
     if (game) switchScreen(`setup-${game}`);
   });
@@ -6824,8 +7006,9 @@ function advanceOrCompletePrisonTask() {
 
   // All stages complete!
   stopPrisonGame();
-  playTone(980, 260, "sine");
+  playStageClearChime();
   sendRewardOnce("prison");
+  recordTrainingSession("prison", 3, "Prison Stage Cleared");
 
   const assign = pendingPrisonAssignment;
   prisonState.clearedCount++;
@@ -7167,12 +7350,31 @@ let workoutBpmTimestamps = [];
 let workoutLiveBpm = 0;
 let workoutTicker = null;
 
+function getLocalDateString(d = new Date()) {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 function loadDailyTrainingStats() {
   try {
     const raw = localStorage.getItem("daily_training_stats");
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (!parsed.history) parsed.history = {};
+      if (parsed.lastDate && Object.keys(parsed.history).length === 0) {
+        parsed.history[parsed.lastDate] = [{
+          type: "workout-10",
+          durationMin: parsed.totalMin || 10,
+          label: "10m Standard Workout",
+          timestamp: Date.now()
+        }];
+      }
+      return parsed;
+    }
   } catch (_) {}
-  return { streak: 0, lastDate: "", totalMin: 0, totalSessions: 0 };
+  return { streak: 0, lastDate: "", totalMin: 0, totalSessions: 0, history: {} };
 }
 
 function saveDailyTrainingStats(stats) {
@@ -7181,18 +7383,17 @@ function saveDailyTrainingStats(stats) {
   } catch (_) {}
 }
 
-function recordWorkoutCompletion(durationMin) {
+function recordTrainingSession(type, durationMin = 1, label = "") {
   const stats = loadDailyTrainingStats();
-  const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+  const today = getLocalDateString();
 
   if (stats.lastDate) {
     const last = new Date(stats.lastDate);
     const curr = new Date(today);
     const diffDays = Math.round((curr - last) / (1000 * 60 * 60 * 24));
     if (diffDays === 1) {
-      stats.streak += 1;
+      stats.streak = (stats.streak || 0) + 1;
     } else if (diffDays === 0) {
-      // already trained today, maintain streak
       if (!stats.streak) stats.streak = 1;
     } else {
       stats.streak = 1;
@@ -7202,10 +7403,25 @@ function recordWorkoutCompletion(durationMin) {
   }
 
   stats.lastDate = today;
-  stats.totalMin = (stats.totalMin || 0) + durationMin;
+  stats.totalMin = (stats.totalMin || 0) + (durationMin || 1);
   stats.totalSessions = (stats.totalSessions || 0) + 1;
+
+  if (!stats.history) stats.history = {};
+  if (!stats.history[today]) stats.history[today] = [];
+
+  stats.history[today].push({
+    type: type,
+    durationMin: durationMin || 1,
+    label: label || `${type} session`,
+    timestamp: Date.now()
+  });
+
   saveDailyTrainingStats(stats);
   return stats;
+}
+
+function recordWorkoutCompletion(durationMin) {
+  return recordTrainingSession(`workout-${durationMin}`, durationMin, `${durationMin}-Minute Daily Workout`);
 }
 
 function startWorkoutGame(durationMin) {
@@ -7231,6 +7447,7 @@ function startWorkoutGame(durationMin) {
 function setupWorkoutStage(idx) {
   stopBpmPacer();
   stopPunishLoop();
+  resetCountdownAudio();
   workoutInPostStageRest = false;
 
   if (!workoutRoutine || idx >= workoutRoutine.length) {
@@ -7298,6 +7515,7 @@ function setupWorkoutStage(idx) {
 }
 
 function advanceWorkoutExercise() {
+  resetCountdownAudio();
   const currentStage = workoutRoutine[workoutStageIdx];
   const nextIdx = workoutStageIdx + 1;
 
@@ -7360,6 +7578,7 @@ function handleWorkoutSensorInput(isDown) {
 
   if (stage.type === "hold") {
     if (isDown) {
+      playHoldLockCue();
       setUnifiedGameState(
         "holding",
         "LOCKED IN HOLD — DO NOT RELEASE!",
@@ -7388,6 +7607,7 @@ function handleWorkoutSensorInput(isDown) {
       return;
     }
     if (isDown) {
+      playHoldLockCue();
       setUnifiedGameState(
         "holding",
         `SET ${workoutSubSetIdx} OF ${stage.sets} — HOLDING DEEP!`,
@@ -7414,13 +7634,9 @@ function tickWorkoutArena() {
 
   if (workoutInPostStageRest) {
     workoutPostStageRestRemaining = Math.max(0, Math.round((workoutPostStageRestRemaining - 0.1) * 10) / 10);
-    if (workoutPostStageRestRemaining <= 3.0 && workoutPostStageRestRemaining > 0) {
-      if (Math.round(workoutPostStageRestRemaining * 10) % 10 === 0) {
-        playTone(480, 50, "sine");
-      }
-    }
+    checkRestCountdownAudio(workoutPostStageRestRemaining);
     if (workoutPostStageRestRemaining <= 0) {
-      playTone(660, 140, "sine");
+      playHoldLockCue();
       setupWorkoutStage(workoutStageIdx + 1);
       return;
     }
@@ -7447,10 +7663,10 @@ function tickWorkoutArena() {
     }
 
     workoutStageSecRemaining = Math.max(0, workoutStageSecRemaining - 0.1);
+    checkHoldCountdownAudio(workoutStageSecRemaining);
 
     if (workoutStageSecRemaining <= 0) {
-      playTone(660, 100, "sine");
-      setTimeout(() => playTone(880, 160, "sine"), 120);
+      playHoldReleaseCue();
       advanceWorkoutExercise();
       return;
     }
@@ -7472,8 +7688,10 @@ function tickWorkoutArena() {
   } else if (stage.type === "hold") {
     if (isPhysicalDown) {
       workoutHoldSecDone += 0.1;
+      const remHold = Math.max(0, stage.holdSec - workoutHoldSecDone);
+      checkHoldCountdownAudio(remHold);
       if (workoutHoldSecDone >= stage.holdSec) {
-        playTone(840, 150, "sine");
+        playHoldReleaseCue();
         advanceWorkoutExercise();
         return;
       }
@@ -7487,13 +7705,16 @@ function tickWorkoutArena() {
     if (!workoutWaitingBreakRelease) {
       if (isPhysicalDown) {
         workoutHoldSecDone += 0.1;
+        const remHold = Math.max(0, stage.holdSec - workoutHoldSecDone);
+        checkHoldCountdownAudio(remHold);
         if (workoutHoldSecDone >= stage.holdSec) {
-          playTone(740, 120, "sine");
+          playHoldReleaseCue();
           if (workoutSubSetIdx < stage.sets) {
             workoutSubSetIdx++;
             workoutHoldSecDone = 0;
             workoutWaitingBreakRelease = true;
             workoutBreakElapsed = 0;
+            resetCountdownAudio();
             setUnifiedGameState(
               "can-release",
               `SET ${workoutSubSetIdx - 1} CLEARED — BREATHE!`,
@@ -7514,9 +7735,11 @@ function tickWorkoutArena() {
     } else {
       workoutBreakElapsed += 0.1;
       const remBreak = Math.max(0, stage.breakSec - workoutBreakElapsed);
+      checkRestCountdownAudio(remBreak);
       if (workoutBreakElapsed >= stage.breakSec) {
         workoutWaitingBreakRelease = false;
-        playTone(540, 90, "triangle");
+        resetCountdownAudio();
+        playHoldLockCue();
         if (isPhysicalDown) {
           setUnifiedGameState(
             "holding",
@@ -7598,11 +7821,7 @@ function updateWorkoutArenaReadout() {
 
 function completeWorkout() {
   stopWorkoutGame();
-
-  playTone(523, 160, "triangle");
-  setTimeout(() => playTone(659, 160, "triangle"), 160);
-  setTimeout(() => playTone(784, 160, "triangle"), 320);
-  setTimeout(() => playTone(1046, 380, "triangle"), 480);
+  playStageClearChime();
   sendRewardOnce("workout");
 
   const stats = recordWorkoutCompletion(workoutDurationMin);
@@ -7642,6 +7861,9 @@ function renderWorkoutDashboard(bannerMsg = null) {
   if (streakEl) streakEl.textContent = String(stats.streak || 0);
   if (totalMinEl) totalMinEl.textContent = String(stats.totalMin || 0);
   if (totalSessionsEl) totalSessionsEl.textContent = String(stats.totalSessions || 0);
+
+  // Render Punch-Card Activity Calendar
+  renderWorkoutPunchCard(stats);
 
   const duration = selectedWorkoutDuration || 10;
   const routine = WORKOUT_ROUTINES[duration] || WORKOUT_ROUTINES[10];
@@ -7729,10 +7951,135 @@ function renderWorkoutDashboard(bannerMsg = null) {
   }
 }
 
+function renderWorkoutPunchCard(stats) {
+  const grid = document.getElementById("workout-punchcard-grid");
+  const monthActiveBadge = document.getElementById("workout-month-active-badge");
+  const detailText = document.getElementById("workout-punchcard-detail-text");
+  if (!grid) return;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayStr = getLocalDateString(today);
+
+  // Calculate 4 full ISO weeks (Mon -> Sun) ending on the current week's Sunday
+  const currentIsoDay = today.getDay() === 0 ? 7 : today.getDay(); // 1=Mon .. 7=Sun
+  const currentWeekMonday = new Date(today);
+  currentWeekMonday.setDate(today.getDate() - (currentIsoDay - 1));
+
+  const numWeeks = 4;
+  const startMonday = new Date(currentWeekMonday);
+  startMonday.setDate(currentWeekMonday.getDate() - ((numWeeks - 1) * 7));
+
+  const totalDays = numWeeks * 7;
+  let monthActiveCount = 0;
+
+  // Count active days in the current calendar month
+  const currentMonthPrefix = todayStr.slice(0, 7); // "YYYY-MM"
+  if (stats.history) {
+    Object.keys(stats.history).forEach(dStr => {
+      if (dStr.startsWith(currentMonthPrefix) && stats.history[dStr].length > 0) {
+        monthActiveCount++;
+      }
+    });
+  }
+
+  if (monthActiveBadge) {
+    const monthName = today.toLocaleDateString(undefined, { month: "short" });
+    monthActiveBadge.textContent = `${monthActiveCount} Active in ${monthName}`;
+  }
+
+  let html = "";
+  for (let i = 0; i < totalDays; i++) {
+    const d = new Date(startMonday);
+    d.setDate(startMonday.getDate() + i);
+    const dStr = getLocalDateString(d);
+    const isToday = dStr === todayStr;
+    const isFuture = d > today;
+    const historyEntries = (stats.history && stats.history[dStr]) ? stats.history[dStr] : [];
+
+    let tierClass = "tier-none";
+    let tierSummary = "Rest Day (No training recorded)";
+
+    if (isFuture) {
+      tierClass = "tier-future";
+      tierSummary = "Upcoming Day";
+    } else if (historyEntries.length > 0) {
+      const types = historyEntries.map(e => e.type);
+      if (types.includes("workout-20")) {
+        tierClass = "tier-workout-20";
+        tierSummary = "20-Minute Endurance Mastery Cleared";
+      } else if (types.includes("workout-15")) {
+        tierClass = "tier-workout-15";
+        tierSummary = "15-Minute Intensive Surge Cleared";
+      } else if (types.includes("workout-10")) {
+        tierClass = "tier-workout-10";
+        tierSummary = "10-Minute Standard Daily Cleared";
+      } else if (types.includes("workout-5")) {
+        tierClass = "tier-workout-5";
+        tierSummary = "5-Minute Express Cadence Cleared";
+      } else if (types.some(t => t.startsWith("prison"))) {
+        tierClass = "tier-prison";
+        tierSummary = "Deepthroat Prison Stage Cleared";
+      } else {
+        tierClass = "tier-session";
+        tierSummary = "Training Session Cleared";
+      }
+
+      if (historyEntries.length > 1) {
+        tierSummary += ` (+${historyEntries.length - 1} more)`;
+      }
+    } else if (isToday) {
+      tierSummary = "Today — Ready for your session!";
+    }
+
+    const dayNum = d.getDate();
+    const formattedDate = d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+    const fullDetail = `${formattedDate}${isToday ? " (Today)" : ""} • ${tierSummary}`;
+
+    const todayClass = isToday ? "is-today" : "";
+    html += `
+      <div class="punchcard-cell ${tierClass} ${todayClass}"
+           data-date="${dStr}"
+           data-detail="${fullDetail.replace(/"/g, '&quot;')}"
+           role="button"
+           tabindex="${isFuture ? -1 : 0}"
+           aria-label="${fullDetail}">
+        <span class="cell-day-num">${dayNum}</span>
+      </div>
+    `;
+  }
+
+  grid.innerHTML = html;
+
+  grid.querySelectorAll(".punchcard-cell:not(.tier-future)").forEach(cell => {
+    const showDetail = () => {
+      grid.querySelectorAll(".punchcard-cell").forEach(c => c.classList.remove("selected"));
+      cell.classList.add("selected");
+      if (detailText) {
+        detailText.textContent = cell.getAttribute("data-detail") || "";
+      }
+      playTactileClick();
+    };
+    cell.addEventListener("click", showDetail);
+    cell.addEventListener("keydown", e => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        showDetail();
+      }
+    });
+  });
+
+  const todayCell = grid.querySelector(".punchcard-cell.is-today");
+  if (todayCell && detailText) {
+    detailText.textContent = todayCell.getAttribute("data-detail") || "";
+  }
+}
+
 function initWorkoutSystem() {
   const durationCards = document.querySelectorAll(".workout-card, .workout-duration-card, .workout-duration-pill");
   durationCards.forEach(card => {
     const selectCard = () => {
+      playTactileClick();
       durationCards.forEach(c => {
         c.classList.remove("active");
         c.setAttribute("aria-checked", "false");
