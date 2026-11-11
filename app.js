@@ -7095,64 +7095,40 @@ function initPrisonCampaign() {
 // ==========================================
 const WORKOUT_ROUTINES = {
   5: [
-    { type: "bpm", title: "Acclimation Cadence", desc: "Follow the 45 BPM downbeat cue to establish your rhythm.", bpm: 45, durationSec: 60 },
-    { type: "break", title: "Breath Break", desc: "Swallow, catch your breath, and reset. Hold block begins in 6s.", durationSec: 6 },
-    { type: "hold_sets", title: "Hold Block (3 Sets in a Row)", desc: "Maintain a continuous unbroken deep hold for 15s each set.", sets: 3, holdSec: 15, breakSec: 5 },
-    { type: "break", title: "Breath Break", desc: "Relax and prepare for the cadence pace increase.", durationSec: 6 },
-    { type: "bpm", title: "Paced Cadence Drive", desc: "Maintain active 55 BPM cadence until the timer expires.", bpm: 55, durationSec: 60 },
-    { type: "break", title: "Prep for Post-Cadence Hold", desc: "Quick 5s breath before locking straight into a deep hold!", durationSec: 5 },
-    { type: "hold", title: "Post-Cadence Hold", desc: "Locked in! Hold continuously for 25s right after the cadence drive.", holdSec: 25 },
-    { type: "break", title: "Recovery Break", desc: "Recover your breath. Final endurance test is next.", durationSec: 6 },
-    { type: "hold", title: "Finisher Endurance Hold", desc: "Final 30s unbroken hold. Push through to completion!", holdSec: 30 }
+    { type: "bpm", title: "Acclimation Cadence", desc: "Follow the 45 BPM downbeat cue to establish your rhythm.", bpm: 45, durationSec: 60, restAfterSec: 6 },
+    { type: "hold_sets", title: "Hold Block (3 Sets in a Row)", desc: "Maintain a continuous unbroken deep hold for 15s each set.", sets: 3, holdSec: 15, breakSec: 5, restAfterSec: 6 },
+    { type: "bpm", title: "Paced Cadence Drive", desc: "Maintain active 55 BPM cadence until the timer expires.", bpm: 55, durationSec: 60, restAfterSec: 5 },
+    { type: "hold", title: "Post-Cadence Hold", desc: "Locked in! Hold continuously for 25s right after the cadence drive.", holdSec: 25, restAfterSec: 6 },
+    { type: "hold", title: "Finisher Endurance Hold", desc: "Final 30s unbroken hold. Push through to completion!", holdSec: 30, restAfterSec: 0 }
   ],
   10: [
-    { type: "bpm", title: "Warmup Cadence", desc: "Smooth 45 BPM cadence to acclimate to depth.", bpm: 45, durationSec: 90 },
-    { type: "break", title: "Breath Break", desc: "Swallow, catch your breath, and reset. Hold block begins in 6s.", durationSec: 6 },
-    { type: "hold_sets", title: "Hold Block (3 Sets in a Row)", desc: "3 unbroken 20s holds with 6s breath intervals.", sets: 3, holdSec: 20, breakSec: 6 },
-    { type: "break", title: "Breath Break", desc: "Relax and reset before Cadence Ladder 1.", durationSec: 8 },
-    { type: "bpm", title: "Cadence Ladder 1", desc: "Lock into a solid 55 BPM cadence.", bpm: 55, durationSec: 90 },
-    { type: "break", title: "Prep for Hold", desc: "Quick 6s breath before locking into hold!", durationSec: 6 },
-    { type: "hold", title: "Immediate Post-BPM Hold", desc: "Hold deep continuously for 25s following the cadence drive.", holdSec: 25 },
-    { type: "break", title: "Breath Break", desc: "Relax and catch your breath before the speed surge.", durationSec: 8 },
-    { type: "bpm", title: "Cadence Ladder 2 (Push)", desc: "Accelerate to 65 BPM! Stay right on beat.", bpm: 65, durationSec: 75 },
-    { type: "break", title: "Prep for Hold Block", desc: "Quick breath before the double post-cadence hold block!", durationSec: 6 },
-    { type: "hold_sets", title: "Double Post-Cadence Hold", desc: "2 consecutive 25s holds right after the tempo surge.", sets: 2, holdSec: 25, breakSec: 6 },
-    { type: "break", title: "Recovery Break", desc: "Breathe and reset for the final endurance hold.", durationSec: 8 },
-    { type: "hold", title: "Climactic Finisher Hold", desc: "Final 40s unbroken deep hold. Finish strong!", holdSec: 40 }
+    { type: "bpm", title: "Warmup Cadence", desc: "Smooth 45 BPM cadence to acclimate to depth.", bpm: 45, durationSec: 90, restAfterSec: 6 },
+    { type: "hold_sets", title: "Hold Block (3 Sets in a Row)", desc: "3 unbroken 20s holds with 6s breath intervals.", sets: 3, holdSec: 20, breakSec: 6, restAfterSec: 8 },
+    { type: "bpm", title: "Cadence Ladder 1", desc: "Lock into a solid 55 BPM cadence.", bpm: 55, durationSec: 90, restAfterSec: 6 },
+    { type: "hold", title: "Immediate Post-BPM Hold", desc: "Hold deep continuously for 25s following the cadence drive.", holdSec: 25, restAfterSec: 8 },
+    { type: "bpm", title: "Cadence Ladder 2 (Push)", desc: "Accelerate to 65 BPM! Stay right on beat.", bpm: 65, durationSec: 75, restAfterSec: 6 },
+    { type: "hold_sets", title: "Double Post-Cadence Hold", desc: "2 consecutive 25s holds right after the tempo surge.", sets: 2, holdSec: 25, breakSec: 6, restAfterSec: 8 },
+    { type: "hold", title: "Climactic Finisher Hold", desc: "Final 40s unbroken deep hold. Finish strong!", holdSec: 40, restAfterSec: 0 }
   ],
   15: [
-    { type: "bpm", title: "Warmup Cadence", desc: "Steady 50 BPM pacing for 90s.", bpm: 50, durationSec: 90 },
-    { type: "break", title: "Breath Break", desc: "Catch your breath for 6s.", durationSec: 6 },
-    { type: "hold_sets", title: "Hold Block (3 Sets in a Row)", desc: "3 unbroken 20s deep holds.", sets: 3, holdSec: 20, breakSec: 6 },
-    { type: "break", title: "Breath Break", desc: "Rest for 8s.", durationSec: 8 },
-    { type: "bpm", title: "Tempo Drive", desc: "Maintain solid 60 BPM tempo for 90s.", bpm: 60, durationSec: 90 },
-    { type: "break", title: "Prep for Hold", desc: "Quick 6s breath.", durationSec: 6 },
-    { type: "hold", title: "Post-Cadence Hold", desc: "30s unbroken hold right after cadence.", holdSec: 30 },
-    { type: "break", title: "Breath Break", desc: "Rest for 8s.", durationSec: 8 },
-    { type: "bpm", title: "Cadence Surge", desc: "Fast 70 BPM cadence sprint for 75s!", bpm: 70, durationSec: 75 },
-    { type: "break", title: "Prep for Holds", desc: "Quick 6s breath.", durationSec: 6 },
-    { type: "hold_sets", title: "Post-Surge Holds (2 Sets)", desc: "2 unbroken 25s deep holds.", sets: 2, holdSec: 25, breakSec: 6 },
-    { type: "break", title: "Breath Break", desc: "Rest for 8s.", durationSec: 8 },
-    { type: "bpm", title: "Paced Cadence Burnout", desc: "65 BPM cadence for 60s.", bpm: 65, durationSec: 60 },
-    { type: "break", title: "Breath Break", desc: "Final rest before the climax.", durationSec: 6 },
-    { type: "hold", title: "Mastery Endurance Hold", desc: "Final 45s unbroken deep hold to clear session!", holdSec: 45 }
+    { type: "bpm", title: "Warmup Cadence", desc: "Steady 50 BPM pacing for 90s.", bpm: 50, durationSec: 90, restAfterSec: 6 },
+    { type: "hold_sets", title: "Hold Block (3 Sets in a Row)", desc: "3 unbroken 20s deep holds.", sets: 3, holdSec: 20, breakSec: 6, restAfterSec: 8 },
+    { type: "bpm", title: "Tempo Drive", desc: "Maintain solid 60 BPM tempo for 90s.", bpm: 60, durationSec: 90, restAfterSec: 6 },
+    { type: "hold", title: "Post-Cadence Hold", desc: "30s unbroken hold right after cadence.", holdSec: 30, restAfterSec: 8 },
+    { type: "bpm", title: "Cadence Surge", desc: "Fast 70 BPM cadence sprint for 75s!", bpm: 70, durationSec: 75, restAfterSec: 6 },
+    { type: "hold_sets", title: "Post-Surge Holds (2 Sets)", desc: "2 unbroken 25s deep holds.", sets: 2, holdSec: 25, breakSec: 6, restAfterSec: 8 },
+    { type: "bpm", title: "Paced Cadence Burnout", desc: "65 BPM cadence for 60s.", bpm: 65, durationSec: 60, restAfterSec: 6 },
+    { type: "hold", title: "Mastery Endurance Hold", desc: "Final 45s unbroken deep hold to clear session!", holdSec: 45, restAfterSec: 0 }
   ],
   20: [
-    { type: "bpm", title: "Endurance Cadence", desc: "Rhythmic 50 BPM cadence for 120s.", bpm: 50, durationSec: 120 },
-    { type: "break", title: "Breath Break", desc: "Rest for 8s.", durationSec: 8 },
-    { type: "hold_sets", title: "Foundation Hold Block (4 Sets)", desc: "4 consecutive 20s deep holds.", sets: 4, holdSec: 20, breakSec: 6 },
-    { type: "break", title: "Breath Break", desc: "Rest for 8s.", durationSec: 8 },
-    { type: "bpm", title: "Cadence Acceleration", desc: "Drive pace at 60 BPM for 90s.", bpm: 60, durationSec: 90 },
-    { type: "break", title: "Prep for Hold", desc: "Quick 6s breath.", durationSec: 6 },
-    { type: "hold", title: "Post-Cadence Hold", desc: "30s unbroken deep hold.", holdSec: 30 },
-    { type: "break", title: "Breath Break", desc: "Rest for 8s.", durationSec: 8 },
-    { type: "hold_sets", title: "Deep Endurance Block (3 Sets)", desc: "3 consecutive 30s deep holds.", sets: 3, holdSec: 30, breakSec: 8 },
-    { type: "break", title: "Breath Break", desc: "Rest for 8s.", durationSec: 8 },
-    { type: "bpm", title: "Peak Tempo Push", desc: "Fast 75 BPM cadence sprint for 75s!", bpm: 75, durationSec: 75 },
-    { type: "break", title: "Prep for Hold", desc: "Quick 6s breath.", durationSec: 6 },
-    { type: "hold", title: "Post-Tempo Hold", desc: "35s unbroken deep hold under fatigue.", holdSec: 35 },
-    { type: "break", title: "Breath Break", desc: "Final 8s breath break.", durationSec: 8 },
-    { type: "hold", title: "60-Second Climax Hold", desc: "Ultimate 60s unbroken deep hold. You've earned this finish!", holdSec: 60 }
+    { type: "bpm", title: "Endurance Cadence", desc: "Rhythmic 50 BPM cadence for 120s.", bpm: 50, durationSec: 120, restAfterSec: 8 },
+    { type: "hold_sets", title: "Foundation Hold Block (4 Sets)", desc: "4 consecutive 20s deep holds.", sets: 4, holdSec: 20, breakSec: 6, restAfterSec: 8 },
+    { type: "bpm", title: "Cadence Acceleration", desc: "Drive pace at 60 BPM for 90s.", bpm: 60, durationSec: 90, restAfterSec: 6 },
+    { type: "hold", title: "Post-Cadence Hold", desc: "30s unbroken deep hold.", holdSec: 30, restAfterSec: 8 },
+    { type: "hold_sets", title: "Deep Endurance Block (3 Sets)", desc: "3 consecutive 30s deep holds.", sets: 3, holdSec: 30, breakSec: 8, restAfterSec: 8 },
+    { type: "bpm", title: "Peak Tempo Push", desc: "Fast 75 BPM cadence sprint for 75s!", bpm: 75, durationSec: 75, restAfterSec: 6 },
+    { type: "hold", title: "Post-Tempo Hold", desc: "35s unbroken deep hold under fatigue.", holdSec: 35, restAfterSec: 8 },
+    { type: "hold", title: "60-Second Climax Hold", desc: "Ultimate 60s unbroken deep hold. You've earned this finish!", holdSec: 60, restAfterSec: 0 }
   ]
 };
 
@@ -7164,7 +7140,8 @@ let workoutStageIdx = 0;
 let workoutSubSetIdx = 1;
 let workoutHoldSecDone = 0;
 let workoutStageSecRemaining = 0;
-let workoutBreakRemaining = 0;
+let workoutInPostStageRest = false;
+let workoutPostStageRestRemaining = 0;
 let workoutBreakElapsed = 0;
 let workoutWaitingBreakRelease = false;
 let workoutTotalElapsedSec = 0;
@@ -7220,10 +7197,13 @@ function startWorkoutGame(durationMin) {
   workoutRoutine = WORKOUT_ROUTINES[workoutDurationMin] || WORKOUT_ROUTINES[10];
 
   workoutTotalDurationSec = workoutRoutine.reduce((sum, s) => {
+    let exerciseTime = 0;
     if (s.type === "hold_sets") {
-      return sum + (s.sets * s.holdSec) + ((s.sets - 1) * s.breakSec);
+      exerciseTime = (s.sets * s.holdSec) + ((s.sets - 1) * s.breakSec);
+    } else {
+      exerciseTime = (s.durationSec || s.holdSec || 0);
     }
-    return sum + (s.durationSec || s.holdSec || 0);
+    return sum + exerciseTime + (s.restAfterSec || 0);
   }, 0);
 
   workoutTotalElapsedSec = 0;
@@ -7234,6 +7214,7 @@ function startWorkoutGame(durationMin) {
 function setupWorkoutStage(idx) {
   stopBpmPacer();
   stopPunishLoop();
+  workoutInPostStageRest = false;
 
   if (!workoutRoutine || idx >= workoutRoutine.length) {
     completeWorkout();
@@ -7251,7 +7232,7 @@ function setupWorkoutStage(idx) {
 
   if (phaseTitle) phaseTitle.textContent = stage.title;
   if (phaseDesc) phaseDesc.textContent = stage.desc;
-  if (phasePill) phasePill.textContent = `PHASE ${idx + 1} OF ${workoutRoutine.length}`;
+  if (phasePill) phasePill.textContent = `EXERCISE ${idx + 1} OF ${workoutRoutine.length}`;
   if (durationPill) durationPill.textContent = `${workoutDurationMin} MIN`;
   if (intensityPill) intensityPill.textContent = `DEVICE: ${config.intensity}%`;
 
@@ -7291,14 +7272,6 @@ function setupWorkoutStage(idx) {
       "ENGAGE SENSOR FOR HOLD",
       `Hold continuously for ${stage.holdSec}s unbroken.`
     );
-  } else if (stage.type === "break") {
-    if (pacerCue) pacerCue.classList.add("hidden");
-    workoutBreakRemaining = stage.durationSec;
-    setUnifiedGameState(
-      "can-release",
-      `BREATH BREAK (${stage.durationSec}s)`,
-      "Relax, swallow, and catch your breath. Next phase arms automatically."
-    );
   }
 
   updateWorkoutArenaReadout();
@@ -7307,8 +7280,48 @@ function setupWorkoutStage(idx) {
   workoutTicker = setInterval(tickWorkoutArena, 100);
 }
 
+function advanceWorkoutExercise() {
+  const currentStage = workoutRoutine[workoutStageIdx];
+  const nextIdx = workoutStageIdx + 1;
+
+  if (nextIdx >= workoutRoutine.length) {
+    completeWorkout();
+    return;
+  }
+
+  if (currentStage && currentStage.restAfterSec > 0) {
+    stopBpmPacer();
+    const pacerCue = document.getElementById("workout-pacer-cue");
+    if (pacerCue) pacerCue.classList.add("hidden");
+
+    workoutInPostStageRest = true;
+    workoutPostStageRestRemaining = currentStage.restAfterSec;
+
+    const nextStage = workoutRoutine[nextIdx];
+    const phaseTitle = document.getElementById("workout-phase-title");
+    const phaseDesc = document.getElementById("workout-phase-desc");
+    const phasePill = document.getElementById("workout-game-phase-pill");
+
+    if (phaseTitle) phaseTitle.textContent = "Breath Break";
+    if (phaseDesc) phaseDesc.textContent = `Swallow, breathe, and reset. Next: ${nextStage.title} (${nextStage.type === 'bpm' ? `${nextStage.bpm} BPM` : (nextStage.type === 'hold_sets' ? `${nextStage.sets} × ${nextStage.holdSec}s` : `${nextStage.holdSec}s Hold`)}).`;
+    if (phasePill) phasePill.textContent = `REST • NEXT: ${nextIdx + 1}/${workoutRoutine.length}`;
+
+    setUnifiedGameState(
+      "can-release",
+      `BREATH BREAK (${currentStage.restAfterSec}s)`,
+      `Catch your breath! Exercise ${nextIdx + 1} (${nextStage.title}) arms in ${currentStage.restAfterSec}s.`
+    );
+    updateWorkoutArenaReadout();
+    return;
+  }
+
+  setupWorkoutStage(nextIdx);
+}
+
 function handleWorkoutSensorInput(isDown) {
   if (!workoutActive || !workoutRoutine) return;
+  if (workoutInPostStageRest) return; // Resting between exercises
+
   const stage = workoutRoutine[workoutStageIdx];
   if (!stage) return;
 
@@ -7382,6 +7395,28 @@ function tickWorkoutArena() {
 
   workoutTotalElapsedSec += 0.1;
 
+  if (workoutInPostStageRest) {
+    workoutPostStageRestRemaining = Math.max(0, Math.round((workoutPostStageRestRemaining - 0.1) * 10) / 10);
+    if (workoutPostStageRestRemaining <= 3.0 && workoutPostStageRestRemaining > 0) {
+      if (Math.round(workoutPostStageRestRemaining * 10) % 10 === 0) {
+        playTone(480, 50, "sine");
+      }
+    }
+    if (workoutPostStageRestRemaining <= 0) {
+      playTone(660, 140, "sine");
+      setupWorkoutStage(workoutStageIdx + 1);
+      return;
+    }
+    const nextStage = workoutRoutine[workoutStageIdx + 1];
+    setUnifiedGameState(
+      "can-release",
+      `BREATH BREAK (${workoutPostStageRestRemaining.toFixed(1)}s)`,
+      `Catch your breath! Exercise ${workoutStageIdx + 2} (${nextStage ? nextStage.title : ""}) arms in ${workoutPostStageRestRemaining.toFixed(1)}s.`
+    );
+    updateWorkoutArenaReadout();
+    return;
+  }
+
   if (stage.type === "bpm") {
     const now = Date.now();
     const cadenceWindowMs = Math.max(3500, (120000 / stage.bpm) + 500);
@@ -7399,7 +7434,7 @@ function tickWorkoutArena() {
     if (workoutStageSecRemaining <= 0) {
       playTone(660, 100, "sine");
       setTimeout(() => playTone(880, 160, "sine"), 120);
-      setupWorkoutStage(workoutStageIdx + 1);
+      advanceWorkoutExercise();
       return;
     }
 
@@ -7422,7 +7457,7 @@ function tickWorkoutArena() {
       workoutHoldSecDone += 0.1;
       if (workoutHoldSecDone >= stage.holdSec) {
         playTone(840, 150, "sine");
-        setupWorkoutStage(workoutStageIdx + 1);
+        advanceWorkoutExercise();
         return;
       }
       setUnifiedGameState(
@@ -7448,7 +7483,7 @@ function tickWorkoutArena() {
               `Catch your breath. Set ${workoutSubSetIdx} of ${stage.sets} arms in ${stage.breakSec}s.`
             );
           } else {
-            setupWorkoutStage(workoutStageIdx + 1);
+            advanceWorkoutExercise();
             return;
           }
         } else {
@@ -7486,23 +7521,6 @@ function tickWorkoutArena() {
         );
       }
     }
-  } else if (stage.type === "break") {
-    workoutBreakRemaining = Math.max(0, workoutBreakRemaining - 0.1);
-    if (workoutBreakRemaining <= 3.0 && workoutBreakRemaining > 0) {
-      if (Math.round(workoutBreakRemaining * 10) % 10 === 0) {
-        playTone(480, 50, "sine");
-      }
-    }
-    if (workoutBreakRemaining <= 0) {
-      playTone(660, 140, "sine");
-      setupWorkoutStage(workoutStageIdx + 1);
-      return;
-    }
-    setUnifiedGameState(
-      "can-release",
-      `BREATH BREAK (${workoutBreakRemaining.toFixed(1)}s)`,
-      "Relax, swallow, and catch your breath. Next phase starts automatically."
-    );
   }
 
   updateWorkoutArenaReadout();
@@ -7529,6 +7547,14 @@ function updateWorkoutArenaReadout() {
     fillEl.style.width = `${Math.min(100, Math.max(0, pct))}%`;
   }
 
+  if (workoutInPostStageRest) {
+    if (phaseTimerEl) phaseTimerEl.textContent = `${workoutPostStageRestRemaining.toFixed(1)}s`;
+    if (primaryNum) primaryNum.textContent = `${workoutPostStageRestRemaining.toFixed(1)}s`;
+    const nextStage = workoutRoutine[workoutStageIdx + 1];
+    if (primaryUnit) primaryUnit.textContent = `RELAX & BREATHE • NEXT: EXERCISE ${workoutStageIdx + 2}${nextStage ? ` (${nextStage.title})` : ''}`;
+    return;
+  }
+
   if (stage.type === "bpm") {
     if (phaseTimerEl) phaseTimerEl.textContent = `${workoutStageSecRemaining.toFixed(1)}s`;
     if (primaryNum) primaryNum.textContent = workoutLiveBpm > 0 ? String(workoutLiveBpm) : "…";
@@ -7550,10 +7576,6 @@ function updateWorkoutArenaReadout() {
       if (primaryNum) primaryNum.textContent = `${remHold.toFixed(1)}s`;
       if (primaryUnit) primaryUnit.textContent = `SET ${workoutSubSetIdx} OF ${stage.sets} (${stage.holdSec}s)`;
     }
-  } else if (stage.type === "break") {
-    if (phaseTimerEl) phaseTimerEl.textContent = `${workoutBreakRemaining.toFixed(1)}s`;
-    if (primaryNum) primaryNum.textContent = `${workoutBreakRemaining.toFixed(1)}s`;
-    if (primaryUnit) primaryUnit.textContent = "RELAX & BREATHE";
   }
 }
 
@@ -7587,6 +7609,7 @@ function completeWorkout() {
 
 function stopWorkoutGame() {
   workoutActive = false;
+  workoutInPostStageRest = false;
   if (workoutTicker) {
     clearInterval(workoutTicker);
     workoutTicker = null;
@@ -7628,24 +7651,44 @@ function renderWorkoutDashboard(bannerMsg = null) {
   }
 
   if (phasesBadge) {
-    phasesBadge.textContent = `${routine.length} PHASES`;
+    phasesBadge.textContent = `${routine.length} EXERCISES`;
   }
 
   if (planList) {
     planList.innerHTML = routine.map((step, i) => {
+      let badgeHtml = "";
       let spec = "";
-      if (step.type === "bpm") spec = `${step.bpm} BPM • ${step.durationSec}s`;
-      else if (step.type === "hold") spec = `${step.holdSec}s Hold`;
-      else if (step.type === "hold_sets") spec = `${step.sets} × ${step.holdSec}s (${step.breakSec}s break)`;
-      else if (step.type === "break") spec = `${step.durationSec}s Rest`;
+      let subDesc = step.desc || "";
+
+      if (step.type === "bpm") {
+        badgeHtml = `<span class="workout-type-badge badge-bpm">CADENCE</span>`;
+        spec = `${step.bpm} BPM • ${step.durationSec}s`;
+      } else if (step.type === "hold") {
+        badgeHtml = `<span class="workout-type-badge badge-hold">HOLD</span>`;
+        spec = `${step.holdSec}s Hold`;
+      } else if (step.type === "hold_sets") {
+        badgeHtml = `<span class="workout-type-badge badge-sets">HOLD SETS</span>`;
+        spec = `${step.sets} × ${step.holdSec}s`;
+      }
+
+      const restBadge = step.restAfterSec > 0
+        ? `<span class="workout-rest-badge">${step.restAfterSec}s rest after</span>`
+        : "";
 
       return `
         <div class="workout-plan-item">
-          <div class="workout-plan-left">
-            <span class="workout-plan-num">${i + 1}.</span>
-            <span class="workout-plan-name">${step.title}</span>
+          <div class="workout-plan-row-main">
+            <div class="workout-plan-left">
+              <span class="workout-plan-num">${String(i + 1).padStart(2, "0")}</span>
+              ${badgeHtml}
+              <span class="workout-plan-name">${step.title}</span>
+            </div>
+            <span class="workout-plan-spec">${spec}</span>
           </div>
-          <span class="workout-plan-spec">${spec}</span>
+          <div class="workout-plan-row-sub">
+            <span>${subDesc}</span>
+            ${restBadge}
+          </div>
         </div>
       `;
     }).join("");
