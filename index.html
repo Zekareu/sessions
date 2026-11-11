@@ -26,6 +26,7 @@
     <main id="screen-hub" class="screen active" data-view="sessions">
       <nav class="hub-tabs" aria-label="Home sections">
         <button id="tab-sessions" type="button" aria-pressed="true">Sessions</button>
+        <button id="tab-workout" type="button" aria-pressed="false">Daily Training</button>
         <button id="tab-prison" type="button" aria-pressed="false">Prison</button>
         <button id="tab-settings" type="button" aria-pressed="false">Settings</button>
       </nav>
@@ -248,6 +249,70 @@
         <!-- Footer Campaign Controls -->
         <div class="prison-footer-row">
           <button id="btn-prison-reset" type="button" class="btn-secondary-small">Reset Prison Campaign</button>
+        </div>
+      </section>
+
+      <!-- ============================================== -->
+      <!-- DAILY TRAINING TAB                             -->
+      <!-- ============================================== -->
+      <section id="hub-workout" class="hub-workout" aria-labelledby="workout-heading">
+        <div class="prison-hero-card workout-hero-card">
+          <img id="workout-hero-img" class="prison-hero-img card-image" src="images/daily-training.webp" onerror="this.src='images/circuit-quest.webp'" alt="Daily Training">
+          <div class="prison-hero-body">
+            <div class="prison-title-row">
+              <div>
+                <span class="prison-kicker">ATHLETIC CADENCE &amp; HOLD DISCIPLINE</span>
+                <h1 id="workout-heading">DAILY TRAINING</h1>
+              </div>
+            </div>
+            <p class="prison-lead" style="margin-top: 8px;">Structured daily conditioning routines mixing metronome cadence pacing, unbroken hold blocks, and high-intensity post-cadence holds. Build consistency and keep your streak alive.</p>
+          </div>
+        </div>
+
+        <!-- Streak & Stats Panel -->
+        <div class="prison-status-card" style="margin-top: 12px; padding: 18px 20px;">
+          <div style="display: flex; justify-content: space-around; align-items: center; text-align: center; flex-wrap: wrap; gap: 16px;">
+            <div>
+              <div style="font-size: 1.8rem; font-weight: 700; color: #fff;">🔥 <span id="workout-streak-val">0</span></div>
+              <div style="font-size: 0.76rem; letter-spacing: 0.1em; color: #aaa; text-transform: uppercase; margin-top: 2px;">Day Streak</div>
+            </div>
+            <div style="width: 1px; height: 36px; background: #333;"></div>
+            <div>
+              <div style="font-size: 1.8rem; font-weight: 700; color: #fff;">⏱ <span id="workout-total-min">0</span>m</div>
+              <div style="font-size: 0.76rem; letter-spacing: 0.1em; color: #aaa; text-transform: uppercase; margin-top: 2px;">Total Minutes</div>
+            </div>
+            <div style="width: 1px; height: 36px; background: #333;"></div>
+            <div>
+              <div style="font-size: 1.8rem; font-weight: 700; color: #fff;">✓ <span id="workout-total-sessions">0</span></div>
+              <div style="font-size: 0.76rem; letter-spacing: 0.1em; color: #aaa; text-transform: uppercase; margin-top: 2px;">Sessions Cleared</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Workout Duration Selector Card -->
+        <div class="prison-warden-card" style="margin-top: 12px; padding: 20px;">
+          <div style="font-size: 0.78rem; font-weight: 700; letter-spacing: 0.12em; color: #aaa; text-transform: uppercase; margin-bottom: 10px;">Select Session Length</div>
+          <div class="workout-duration-pills" style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <button type="button" class="pill-select workout-duration-pill" data-workout-duration="5">5 MIN (Express)</button>
+            <button type="button" class="pill-select workout-duration-pill active" data-workout-duration="10">10 MIN (Standard)</button>
+            <button type="button" class="pill-select workout-duration-pill" data-workout-duration="15">15 MIN (Intensive)</button>
+            <button type="button" class="pill-select workout-duration-pill" data-workout-duration="20">20 MIN (Endurance)</button>
+          </div>
+
+          <!-- Plan Breakdown -->
+          <div style="margin-top: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span id="workout-plan-title" style="font-size: 0.95rem; font-weight: 700; color: #fff;">10-Minute Standard Workout</span>
+              <span id="workout-plan-phases-badge" class="badge-tower-tag">7 PHASES</span>
+            </div>
+            <div id="workout-plan-list" class="workout-plan-list">
+              <!-- Populated dynamically -->
+            </div>
+          </div>
+
+          <div style="margin-top: 22px; text-align: center;">
+            <button id="btn-workout-start" type="button" class="btn btn-primary" style="width: 100%; max-width: 440px; font-size: 1.05rem; padding: 14px 24px;">Start Daily Workout</button>
+          </div>
         </div>
       </section>
 
@@ -1550,6 +1615,56 @@
 
             <div class="prison-arena-actions">
               <button id="btn-prison-forfeit" type="button" class="btn-secondary-small">Forfeit Task (Deduct Points &amp; Punish)</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- ============================================== -->
+    <!-- SCREEN: DAILY TRAINING SENSOR ARENA            -->
+    <!-- ============================================== -->
+    <main id="screen-game-workout" class="screen">
+      <div class="game-header">
+        <div class="tower-stats-header">
+          <span id="workout-game-mode-pill" class="badge-tower-tag">DAILY WORKOUT</span>
+          <span id="workout-game-duration-pill" class="badge-tower-tag">10 MIN</span>
+          <span id="workout-game-phase-pill" class="badge-tower-tag">PHASE 1 OF 7</span>
+          <span id="workout-game-intensity-pill" class="badge-intensity-tag hardware-only">DEVICE: 20%</span>
+        </div>
+      </div>
+
+      <div class="tower-progress-wrapper">
+        <div class="tower-track"><div id="workout-progress-fill" class="tower-fill" style="width: 0%;"></div></div>
+      </div>
+
+      <div id="workout-arena" class="hold-arena">
+        <div class="arena-overlay">
+          <div class="arena-content">
+            <div class="prison-arena-top">
+              <div class="prison-arena-meta">
+                <div id="workout-phase-title" class="prison-arena-title">Warmup Cadence</div>
+                <div id="workout-phase-desc" class="prison-arena-rule">Follow the steady 45 BPM cadence downbeats.</div>
+              </div>
+            </div>
+
+            <div class="bpm-meta-row" style="width: 100%; max-width: 380px;">
+              <span>PHASE: <b id="workout-phase-timer">90.0s</b></span>
+              <span>TOTAL LEFT: <b id="workout-total-timer">10:00</b></span>
+            </div>
+
+            <div id="workout-pacer-cue" class="pacer-cue-pill hidden">⬇ LISTEN FOR DOWN BEAT</div>
+
+            <div class="cadence-readout">
+              <span id="workout-primary-num" class="bpm-huge">45</span>
+              <span id="workout-primary-unit" class="bpm-sub">CADENCE • TARGET: 45 BPM</span>
+            </div>
+
+            <div id="workout-state-label" class="state-label">START TAPPING TO BEGIN</div>
+            <div id="workout-sub-hint" class="sub-hint">Follow the tempo cue or engage sensor to proceed.</div>
+
+            <div class="prison-arena-actions">
+              <button id="btn-workout-forfeit" type="button" class="btn-secondary-small">Abandon Workout</button>
             </div>
           </div>
         </div>

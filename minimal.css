@@ -114,8 +114,9 @@ body, body[data-game-state] {
   color: #000;
   background: #fff;
 }
-.hub-layout, .hub-sessions, .hub-prison { min-width: 0; }
+.hub-layout, .hub-sessions, .hub-workout, .hub-prison { min-width: 0; }
 #screen-hub:not([data-view="sessions"]) .hub-sessions { display: none; }
+#screen-hub:not([data-view="workout"]) .hub-workout { display: none; }
 #screen-hub:not([data-view="prison"]) .hub-prison { display: none; }
 #screen-hub:not([data-view="settings"]) .settings-section { display: none; }
 
@@ -1306,4 +1307,65 @@ body[data-game-state="stalling"] .tower-stats-header * {
   margin: 12px auto 0;
   display: flex;
   justify-content: center;
+}
+
+/* ========================================== */
+/* DAILY TRAINING WORKOUT STYLES              */
+/* ========================================== */
+.hub-workout {
+  padding: 0 0 40px;
+}
+
+.workout-hero-card {
+  border-color: #555;
+}
+
+.workout-plan-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid #333;
+  border-radius: var(--radius-control);
+  padding: 12px 14px;
+}
+
+.workout-plan-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.86rem;
+  padding: 7px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.workout-plan-item:last-child {
+  border-bottom: 0;
+}
+
+.workout-plan-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.workout-plan-num {
+  font-weight: 700;
+  color: #777;
+  font-size: 0.78rem;
+  min-width: 20px;
+}
+
+.workout-plan-name {
+  font-weight: 600;
+  color: #eee;
+}
+
+.workout-plan-spec {
+  font-size: 0.8rem;
+  color: #aaa;
+  font-family: var(--font-mono, monospace);
+  flex-shrink: 0;
 }

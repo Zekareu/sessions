@@ -636,12 +636,24 @@ function switchScreen(targetScreen) {
       } else if (g === "prison") {
         title.textContent = "DEEPTHROAT PRISON";
         resetPrisonGameArena();
+      } else if (g === "workout") {
+        title.textContent = "DAILY TRAINING";
+        resetWorkoutGameArena();
       }
     }
   }
 }
 
 function handleBackNavigation() {
+  if (currentScreen === "game-workout") {
+    if (confirm("Abandon your daily workout? Your progress for this session will not be saved.")) {
+      stopWorkoutGame();
+      switchScreen("hub");
+      setHubView("workout");
+      renderWorkoutDashboard();
+    }
+    return;
+  }
   if (currentScreen === "game-prison") {
     if (prisonPenaltyActive) {
       // Cannot escape during mandatory penalty hold!
@@ -685,6 +697,7 @@ function stopAllGames() {
   stopBlindHiltGame();
   stopTempoEscalationGame();
   if (typeof stopPrisonGame === "function") stopPrisonGame();
+  if (typeof stopWorkoutGame === "function") stopWorkoutGame();
   stopPunishLoop();
   document.body.removeAttribute("data-game-state");
   updateStatusIndicator(false);
@@ -715,6 +728,8 @@ function setUnifiedGameState(stateName, labelText = null, subHintText = null) {
     arenaId = "te-arena"; labelId = "te-state-label"; hintId = "te-sub-hint";
   } else if (currentScreen === "game-prison") {
     arenaId = "prison-arena"; labelId = "prison-state-label"; hintId = "prison-sub-hint";
+  } else if (currentScreen === "game-workout") {
+    arenaId = "workout-arena"; labelId = "workout-state-label"; hintId = "workout-sub-hint";
   }
 
   const arena = arenaId ? document.getElementById(arenaId) : null;
@@ -807,6 +822,8 @@ function handlePhysicalInputState(isDown) {
     handleTempoEscalationLogic(isDown);
   } else if (currentScreen === "game-prison") {
     handlePrisonSensorInput(isDown);
+  } else if (currentScreen === "game-workout") {
+    handleWorkoutSensorInput(isDown);
   }
 }
 
@@ -4967,17 +4984,19 @@ function updateOutputFields(mode) {
 function initSettingsPage() {
   const hub = document.getElementById("screen-hub");
   const sessionsTab = document.getElementById("tab-sessions");
+  const workoutTab = document.getElementById("tab-workout");
   const prisonTab = document.getElementById("tab-prison");
   const settingsTab = document.getElementById("tab-settings");
   const setHubView = view => {
     hub.dataset.view = view;
     sessionsTab.setAttribute("aria-pressed", String(view === "sessions"));
+    if (workoutTab) workoutTab.setAttribute("aria-pressed", String(view === "workout"));
     if (prisonTab) prisonTab.setAttribute("aria-pressed", String(view === "prison"));
     settingsTab.setAttribute("aria-pressed", String(view === "settings"));
     localStorage.setItem("os_hub_view", view);
   };
   const savedHubView = localStorage.getItem("os_hub_view");
-  if (["sessions", "prison", "settings"].includes(savedHubView)) {
+  if (["sessions", "workout", "prison", "settings"].includes(savedHubView)) {
     setHubView(savedHubView);
   }
 
@@ -5082,6 +5101,13 @@ function initSettingsPage() {
     setHubView("sessions");
     window.scrollTo({ top: 0 });
   });
+  if (workoutTab) {
+    workoutTab.addEventListener("click", () => {
+      setHubView("workout");
+      if (typeof renderWorkoutDashboard === "function") renderWorkoutDashboard();
+      window.scrollTo({ top: 0 });
+    });
+  }
   if (prisonTab) {
     prisonTab.addEventListener("click", () => {
       setHubView("prison");
@@ -7064,6 +7090,633 @@ function initPrisonCampaign() {
   renderPrisonDashboard();
 }
 
+// ==========================================
+// 15. DAILY TRAINING SYSTEM (BPM & HOLD CONDITIONING)
+// ==========================================
+const WORKOUT_ROUTINES = {
+  5: [
+    { type: "bpm", title: "Acclimation Cadence", desc: "Follow the 45 BPM downbeat cue to establish your rhythm.", bpm: 45, durationSec: 60 },
+    { type: "break", title: "Breath Break", desc: "Swallow, catch your breath, and reset. Hold block begins in 6s.", durationSec: 6 },
+    { type: "hold_sets", title: "Hold Block (3 Sets in a Row)", desc: "Maintain a continuous unbroken deep hold for 15s each set.", sets: 3, holdSec: 15, breakSec: 5 },
+    { type: "break", title: "Breath Break", desc: "Relax and prepare for the cadence pace increase.", durationSec: 6 },
+    { type: "bpm", title: "Paced Cadence Drive", desc: "Maintain active 55 BPM cadence until the timer expires.", bpm: 55, durationSec: 60 },
+    { type: "break", title: "Prep for Post-Cadence Hold", desc: "Quick 5s breath before locking straight into a deep hold!", durationSec: 5 },
+    { type: "hold", title: "Post-Cadence Hold", desc: "Locked in! Hold continuously for 25s right after the cadence drive.", holdSec: 25 },
+    { type: "break", title: "Recovery Break", desc: "Recover your breath. Final endurance test is next.", durationSec: 6 },
+    { type: "hold", title: "Finisher Endurance Hold", desc: "Final 30s unbroken hold. Push through to completion!", holdSec: 30 }
+  ],
+  10: [
+    { type: "bpm", title: "Warmup Cadence", desc: "Smooth 45 BPM cadence to acclimate to depth.", bpm: 45, durationSec: 90 },
+    { type: "break", title: "Breath Break", desc: "Swallow, catch your breath, and reset. Hold block begins in 6s.", durationSec: 6 },
+    { type: "hold_sets", title: "Hold Block (3 Sets in a Row)", desc: "3 unbroken 20s holds with 6s breath intervals.", sets: 3, holdSec: 20, breakSec: 6 },
+    { type: "break", title: "Breath Break", desc: "Relax and reset before Cadence Ladder 1.", durationSec: 8 },
+    { type: "bpm", title: "Cadence Ladder 1", desc: "Lock into a solid 55 BPM cadence.", bpm: 55, durationSec: 90 },
+    { type: "break", title: "Prep for Hold", desc: "Quick 6s breath before locking into hold!", durationSec: 6 },
+    { type: "hold", title: "Immediate Post-BPM Hold", desc: "Hold deep continuously for 25s following the cadence drive.", holdSec: 25 },
+    { type: "break", title: "Breath Break", desc: "Relax and catch your breath before the speed surge.", durationSec: 8 },
+    { type: "bpm", title: "Cadence Ladder 2 (Push)", desc: "Accelerate to 65 BPM! Stay right on beat.", bpm: 65, durationSec: 75 },
+    { type: "break", title: "Prep for Hold Block", desc: "Quick breath before the double post-cadence hold block!", durationSec: 6 },
+    { type: "hold_sets", title: "Double Post-Cadence Hold", desc: "2 consecutive 25s holds right after the tempo surge.", sets: 2, holdSec: 25, breakSec: 6 },
+    { type: "break", title: "Recovery Break", desc: "Breathe and reset for the final endurance hold.", durationSec: 8 },
+    { type: "hold", title: "Climactic Finisher Hold", desc: "Final 40s unbroken deep hold. Finish strong!", holdSec: 40 }
+  ],
+  15: [
+    { type: "bpm", title: "Warmup Cadence", desc: "Steady 50 BPM pacing for 90s.", bpm: 50, durationSec: 90 },
+    { type: "break", title: "Breath Break", desc: "Catch your breath for 6s.", durationSec: 6 },
+    { type: "hold_sets", title: "Hold Block (3 Sets in a Row)", desc: "3 unbroken 20s deep holds.", sets: 3, holdSec: 20, breakSec: 6 },
+    { type: "break", title: "Breath Break", desc: "Rest for 8s.", durationSec: 8 },
+    { type: "bpm", title: "Tempo Drive", desc: "Maintain solid 60 BPM tempo for 90s.", bpm: 60, durationSec: 90 },
+    { type: "break", title: "Prep for Hold", desc: "Quick 6s breath.", durationSec: 6 },
+    { type: "hold", title: "Post-Cadence Hold", desc: "30s unbroken hold right after cadence.", holdSec: 30 },
+    { type: "break", title: "Breath Break", desc: "Rest for 8s.", durationSec: 8 },
+    { type: "bpm", title: "Cadence Surge", desc: "Fast 70 BPM cadence sprint for 75s!", bpm: 70, durationSec: 75 },
+    { type: "break", title: "Prep for Holds", desc: "Quick 6s breath.", durationSec: 6 },
+    { type: "hold_sets", title: "Post-Surge Holds (2 Sets)", desc: "2 unbroken 25s deep holds.", sets: 2, holdSec: 25, breakSec: 6 },
+    { type: "break", title: "Breath Break", desc: "Rest for 8s.", durationSec: 8 },
+    { type: "bpm", title: "Paced Cadence Burnout", desc: "65 BPM cadence for 60s.", bpm: 65, durationSec: 60 },
+    { type: "break", title: "Breath Break", desc: "Final rest before the climax.", durationSec: 6 },
+    { type: "hold", title: "Mastery Endurance Hold", desc: "Final 45s unbroken deep hold to clear session!", holdSec: 45 }
+  ],
+  20: [
+    { type: "bpm", title: "Endurance Cadence", desc: "Rhythmic 50 BPM cadence for 120s.", bpm: 50, durationSec: 120 },
+    { type: "break", title: "Breath Break", desc: "Rest for 8s.", durationSec: 8 },
+    { type: "hold_sets", title: "Foundation Hold Block (4 Sets)", desc: "4 consecutive 20s deep holds.", sets: 4, holdSec: 20, breakSec: 6 },
+    { type: "break", title: "Breath Break", desc: "Rest for 8s.", durationSec: 8 },
+    { type: "bpm", title: "Cadence Acceleration", desc: "Drive pace at 60 BPM for 90s.", bpm: 60, durationSec: 90 },
+    { type: "break", title: "Prep for Hold", desc: "Quick 6s breath.", durationSec: 6 },
+    { type: "hold", title: "Post-Cadence Hold", desc: "30s unbroken deep hold.", holdSec: 30 },
+    { type: "break", title: "Breath Break", desc: "Rest for 8s.", durationSec: 8 },
+    { type: "hold_sets", title: "Deep Endurance Block (3 Sets)", desc: "3 consecutive 30s deep holds.", sets: 3, holdSec: 30, breakSec: 8 },
+    { type: "break", title: "Breath Break", desc: "Rest for 8s.", durationSec: 8 },
+    { type: "bpm", title: "Peak Tempo Push", desc: "Fast 75 BPM cadence sprint for 75s!", bpm: 75, durationSec: 75 },
+    { type: "break", title: "Prep for Hold", desc: "Quick 6s breath.", durationSec: 6 },
+    { type: "hold", title: "Post-Tempo Hold", desc: "35s unbroken deep hold under fatigue.", holdSec: 35 },
+    { type: "break", title: "Breath Break", desc: "Final 8s breath break.", durationSec: 8 },
+    { type: "hold", title: "60-Second Climax Hold", desc: "Ultimate 60s unbroken deep hold. You've earned this finish!", holdSec: 60 }
+  ]
+};
+
+let workoutActive = false;
+let selectedWorkoutDuration = 10;
+let workoutDurationMin = 10;
+let workoutRoutine = null;
+let workoutStageIdx = 0;
+let workoutSubSetIdx = 1;
+let workoutHoldSecDone = 0;
+let workoutStageSecRemaining = 0;
+let workoutBreakRemaining = 0;
+let workoutBreakElapsed = 0;
+let workoutWaitingBreakRelease = false;
+let workoutTotalElapsedSec = 0;
+let workoutTotalDurationSec = 600;
+let workoutBpmTimestamps = [];
+let workoutLiveBpm = 0;
+let workoutTicker = null;
+
+function loadDailyTrainingStats() {
+  try {
+    const raw = localStorage.getItem("daily_training_stats");
+    if (raw) return JSON.parse(raw);
+  } catch (_) {}
+  return { streak: 0, lastDate: "", totalMin: 0, totalSessions: 0 };
+}
+
+function saveDailyTrainingStats(stats) {
+  try {
+    localStorage.setItem("daily_training_stats", JSON.stringify(stats));
+  } catch (_) {}
+}
+
+function recordWorkoutCompletion(durationMin) {
+  const stats = loadDailyTrainingStats();
+  const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+
+  if (stats.lastDate) {
+    const last = new Date(stats.lastDate);
+    const curr = new Date(today);
+    const diffDays = Math.round((curr - last) / (1000 * 60 * 60 * 24));
+    if (diffDays === 1) {
+      stats.streak += 1;
+    } else if (diffDays === 0) {
+      // already trained today, maintain streak
+      if (!stats.streak) stats.streak = 1;
+    } else {
+      stats.streak = 1;
+    }
+  } else {
+    stats.streak = 1;
+  }
+
+  stats.lastDate = today;
+  stats.totalMin = (stats.totalMin || 0) + durationMin;
+  stats.totalSessions = (stats.totalSessions || 0) + 1;
+  saveDailyTrainingStats(stats);
+  return stats;
+}
+
+function startWorkoutGame(durationMin) {
+  workoutActive = true;
+  workoutDurationMin = durationMin || selectedWorkoutDuration || 10;
+  workoutRoutine = WORKOUT_ROUTINES[workoutDurationMin] || WORKOUT_ROUTINES[10];
+
+  workoutTotalDurationSec = workoutRoutine.reduce((sum, s) => {
+    if (s.type === "hold_sets") {
+      return sum + (s.sets * s.holdSec) + ((s.sets - 1) * s.breakSec);
+    }
+    return sum + (s.durationSec || s.holdSec || 0);
+  }, 0);
+
+  workoutTotalElapsedSec = 0;
+  workoutStageIdx = 0;
+  setupWorkoutStage(0);
+}
+
+function setupWorkoutStage(idx) {
+  stopBpmPacer();
+  stopPunishLoop();
+
+  if (!workoutRoutine || idx >= workoutRoutine.length) {
+    completeWorkout();
+    return;
+  }
+
+  workoutStageIdx = idx;
+  const stage = workoutRoutine[idx];
+
+  const phaseTitle = document.getElementById("workout-phase-title");
+  const phaseDesc = document.getElementById("workout-phase-desc");
+  const phasePill = document.getElementById("workout-game-phase-pill");
+  const durationPill = document.getElementById("workout-game-duration-pill");
+  const intensityPill = document.getElementById("workout-game-intensity-pill");
+
+  if (phaseTitle) phaseTitle.textContent = stage.title;
+  if (phaseDesc) phaseDesc.textContent = stage.desc;
+  if (phasePill) phasePill.textContent = `PHASE ${idx + 1} OF ${workoutRoutine.length}`;
+  if (durationPill) durationPill.textContent = `${workoutDurationMin} MIN`;
+  if (intensityPill) intensityPill.textContent = `DEVICE: ${config.intensity}%`;
+
+  const pacerCue = document.getElementById("workout-pacer-cue");
+
+  if (stage.type === "bpm") {
+    workoutStageSecRemaining = stage.durationSec;
+    workoutBpmTimestamps = [];
+    workoutLiveBpm = 0;
+    isRepStrokeArmed = !(config.inputSource === "mediapipe" && isPhysicalDown);
+    if (pacerCue) {
+      pacerCue.classList.remove("hidden");
+      refreshBpmCuePillIdle("workout-pacer-cue");
+      startBpmPacer(stage.bpm, "workout-pacer-cue", "workout-arena", false);
+    }
+    setUnifiedGameState(
+      "pause",
+      "FOLLOW DOWNBEAT TO MATCH TEMPO",
+      `Follow the downbeat cue to maintain ${stage.bpm} BPM for ${stage.durationSec}s.`
+    );
+  } else if (stage.type === "hold_sets") {
+    if (pacerCue) pacerCue.classList.add("hidden");
+    workoutSubSetIdx = 1;
+    workoutHoldSecDone = 0;
+    workoutWaitingBreakRelease = false;
+    workoutBreakElapsed = 0;
+    setUnifiedGameState(
+      "pause",
+      `SET 1 OF ${stage.sets} — ENGAGE SENSOR`,
+      `Lock in continuous unbroken hold for ${stage.holdSec}s.`
+    );
+  } else if (stage.type === "hold") {
+    if (pacerCue) pacerCue.classList.add("hidden");
+    workoutHoldSecDone = 0;
+    setUnifiedGameState(
+      "pause",
+      "ENGAGE SENSOR FOR HOLD",
+      `Hold continuously for ${stage.holdSec}s unbroken.`
+    );
+  } else if (stage.type === "break") {
+    if (pacerCue) pacerCue.classList.add("hidden");
+    workoutBreakRemaining = stage.durationSec;
+    setUnifiedGameState(
+      "can-release",
+      `BREATH BREAK (${stage.durationSec}s)`,
+      "Relax, swallow, and catch your breath. Next phase arms automatically."
+    );
+  }
+
+  updateWorkoutArenaReadout();
+
+  if (workoutTicker) clearInterval(workoutTicker);
+  workoutTicker = setInterval(tickWorkoutArena, 100);
+}
+
+function handleWorkoutSensorInput(isDown) {
+  if (!workoutActive || !workoutRoutine) return;
+  const stage = workoutRoutine[workoutStageIdx];
+  if (!stage) return;
+
+  if (stage.type === "bpm") {
+    if (isDown) {
+      if (isRepStrokeArmed) {
+        isRepStrokeArmed = false;
+        workoutBpmTimestamps.push(Date.now());
+        playTone(800, 30);
+      }
+    } else {
+      if (config.inputSource !== "mediapipe") {
+        isRepStrokeArmed = true;
+      }
+    }
+    updateWorkoutArenaReadout();
+    return;
+  }
+
+  if (stage.type === "hold") {
+    if (isDown) {
+      setUnifiedGameState(
+        "holding",
+        "LOCKED IN HOLD — DO NOT RELEASE!",
+        `Keep holding deep! ${Math.max(0, stage.holdSec - workoutHoldSecDone).toFixed(1)}s remaining.`
+      );
+    } else {
+      setUnifiedGameState(
+        "pause",
+        "HOLD PAUSED — RE-ENGAGE SENSOR",
+        `Reach target line to resume remaining ${Math.max(0, stage.holdSec - workoutHoldSecDone).toFixed(1)}s hold.`
+      );
+    }
+    updateWorkoutArenaReadout();
+    return;
+  }
+
+  if (stage.type === "hold_sets") {
+    if (workoutWaitingBreakRelease) {
+      if (!isDown) {
+        setUnifiedGameState(
+          "can-release",
+          `SET ${workoutSubSetIdx - 1} CLEARED — BREATHE!`,
+          `Set ${workoutSubSetIdx} arms in ${Math.max(0, stage.breakSec - workoutBreakElapsed).toFixed(1)}s.`
+        );
+      }
+      return;
+    }
+    if (isDown) {
+      setUnifiedGameState(
+        "holding",
+        `SET ${workoutSubSetIdx} OF ${stage.sets} — HOLDING DEEP!`,
+        `Keep holding! ${Math.max(0, stage.holdSec - workoutHoldSecDone).toFixed(1)}s left.`
+      );
+    } else {
+      setUnifiedGameState(
+        "pause",
+        `SET ${workoutSubSetIdx} PAUSED — RE-ENGAGE SENSOR`,
+        `Reach target line to finish Set ${workoutSubSetIdx}.`
+      );
+    }
+    updateWorkoutArenaReadout();
+    return;
+  }
+}
+
+function tickWorkoutArena() {
+  if (!workoutActive || !workoutRoutine) return;
+  const stage = workoutRoutine[workoutStageIdx];
+  if (!stage) return;
+
+  workoutTotalElapsedSec += 0.1;
+
+  if (stage.type === "bpm") {
+    const now = Date.now();
+    const cadenceWindowMs = Math.max(3500, (120000 / stage.bpm) + 500);
+    workoutBpmTimestamps = workoutBpmTimestamps.filter(t => now - t <= cadenceWindowMs);
+
+    workoutLiveBpm = 0;
+    if (workoutBpmTimestamps.length >= 2) {
+      const duration = (workoutBpmTimestamps[workoutBpmTimestamps.length - 1] - workoutBpmTimestamps[0]) / 1000;
+      const count = workoutBpmTimestamps.length - 1;
+      if (duration > 0) workoutLiveBpm = Math.round((count / duration) * 60);
+    }
+
+    workoutStageSecRemaining = Math.max(0, workoutStageSecRemaining - 0.1);
+
+    if (workoutStageSecRemaining <= 0) {
+      playTone(660, 100, "sine");
+      setTimeout(() => playTone(880, 160, "sine"), 120);
+      setupWorkoutStage(workoutStageIdx + 1);
+      return;
+    }
+
+    const isPaceCompliant = workoutBpmTimestamps.length <= 1 || workoutLiveBpm >= (stage.bpm * 0.82);
+    if (isPaceCompliant) {
+      setUnifiedGameState(
+        "holding",
+        "MATCHING TARGET TEMPO",
+        `Maintain ${stage.bpm} BPM until timer hits 0.0s (${workoutStageSecRemaining.toFixed(1)}s left).`
+      );
+    } else {
+      setUnifiedGameState(
+        "stalling",
+        `SPEED UP! (CURRENT: ${workoutLiveBpm || 0} BPM)`,
+        `Target tempo is ${stage.bpm} BPM.`
+      );
+    }
+  } else if (stage.type === "hold") {
+    if (isPhysicalDown) {
+      workoutHoldSecDone += 0.1;
+      if (workoutHoldSecDone >= stage.holdSec) {
+        playTone(840, 150, "sine");
+        setupWorkoutStage(workoutStageIdx + 1);
+        return;
+      }
+      setUnifiedGameState(
+        "holding",
+        "LOCKED IN HOLD — DO NOT RELEASE!",
+        `Keep holding deep! ${Math.max(0, stage.holdSec - workoutHoldSecDone).toFixed(1)}s remaining.`
+      );
+    }
+  } else if (stage.type === "hold_sets") {
+    if (!workoutWaitingBreakRelease) {
+      if (isPhysicalDown) {
+        workoutHoldSecDone += 0.1;
+        if (workoutHoldSecDone >= stage.holdSec) {
+          playTone(740, 120, "sine");
+          if (workoutSubSetIdx < stage.sets) {
+            workoutSubSetIdx++;
+            workoutHoldSecDone = 0;
+            workoutWaitingBreakRelease = true;
+            workoutBreakElapsed = 0;
+            setUnifiedGameState(
+              "can-release",
+              `SET ${workoutSubSetIdx - 1} CLEARED — BREATHE!`,
+              `Catch your breath. Set ${workoutSubSetIdx} of ${stage.sets} arms in ${stage.breakSec}s.`
+            );
+          } else {
+            setupWorkoutStage(workoutStageIdx + 1);
+            return;
+          }
+        } else {
+          setUnifiedGameState(
+            "holding",
+            `SET ${workoutSubSetIdx} OF ${stage.sets} — HOLDING DEEP!`,
+            `Keep holding! ${Math.max(0, stage.holdSec - workoutHoldSecDone).toFixed(1)}s left.`
+          );
+        }
+      }
+    } else {
+      workoutBreakElapsed += 0.1;
+      const remBreak = Math.max(0, stage.breakSec - workoutBreakElapsed);
+      if (workoutBreakElapsed >= stage.breakSec) {
+        workoutWaitingBreakRelease = false;
+        playTone(540, 90, "triangle");
+        if (isPhysicalDown) {
+          setUnifiedGameState(
+            "holding",
+            `SET ${workoutSubSetIdx} OF ${stage.sets} — LOCKED IN!`,
+            `Hold continuously for ${stage.holdSec}s.`
+          );
+        } else {
+          setUnifiedGameState(
+            "pause",
+            `SET ${workoutSubSetIdx} OF ${stage.sets} ARMED!`,
+            `Engage sensor to begin Set ${workoutSubSetIdx} (${stage.holdSec}s hold).`
+          );
+        }
+      } else {
+        setUnifiedGameState(
+          "can-release",
+          `REST BREAK (${remBreak.toFixed(1)}s)`,
+          `Release and breathe. Set ${workoutSubSetIdx} begins in ${remBreak.toFixed(1)}s.`
+        );
+      }
+    }
+  } else if (stage.type === "break") {
+    workoutBreakRemaining = Math.max(0, workoutBreakRemaining - 0.1);
+    if (workoutBreakRemaining <= 3.0 && workoutBreakRemaining > 0) {
+      if (Math.round(workoutBreakRemaining * 10) % 10 === 0) {
+        playTone(480, 50, "sine");
+      }
+    }
+    if (workoutBreakRemaining <= 0) {
+      playTone(660, 140, "sine");
+      setupWorkoutStage(workoutStageIdx + 1);
+      return;
+    }
+    setUnifiedGameState(
+      "can-release",
+      `BREATH BREAK (${workoutBreakRemaining.toFixed(1)}s)`,
+      "Relax, swallow, and catch your breath. Next phase starts automatically."
+    );
+  }
+
+  updateWorkoutArenaReadout();
+}
+
+function updateWorkoutArenaReadout() {
+  if (!workoutActive || !workoutRoutine) return;
+  const stage = workoutRoutine[workoutStageIdx];
+  if (!stage) return;
+
+  const phaseTimerEl = document.getElementById("workout-phase-timer");
+  const totalTimerEl = document.getElementById("workout-total-timer");
+  const primaryNum = document.getElementById("workout-primary-num");
+  const primaryUnit = document.getElementById("workout-primary-unit");
+  const fillEl = document.getElementById("workout-progress-fill");
+
+  const remTotal = Math.max(0, workoutTotalDurationSec - workoutTotalElapsedSec);
+  const m = Math.floor(remTotal / 60);
+  const s = Math.floor(remTotal % 60);
+  if (totalTimerEl) totalTimerEl.textContent = `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+
+  if (fillEl) {
+    const pct = (workoutTotalElapsedSec / workoutTotalDurationSec) * 100;
+    fillEl.style.width = `${Math.min(100, Math.max(0, pct))}%`;
+  }
+
+  if (stage.type === "bpm") {
+    if (phaseTimerEl) phaseTimerEl.textContent = `${workoutStageSecRemaining.toFixed(1)}s`;
+    if (primaryNum) primaryNum.textContent = workoutLiveBpm > 0 ? String(workoutLiveBpm) : "…";
+    if (primaryUnit) primaryUnit.textContent = `CADENCE • TARGET: ${stage.bpm} BPM`;
+  } else if (stage.type === "hold") {
+    const remHold = Math.max(0, stage.holdSec - workoutHoldSecDone);
+    if (phaseTimerEl) phaseTimerEl.textContent = `${remHold.toFixed(1)}s`;
+    if (primaryNum) primaryNum.textContent = `${remHold.toFixed(1)}s`;
+    if (primaryUnit) primaryUnit.textContent = "CONTINUOUS HOLD REMAINING";
+  } else if (stage.type === "hold_sets") {
+    if (workoutWaitingBreakRelease) {
+      const remBreak = Math.max(0, stage.breakSec - workoutBreakElapsed);
+      if (phaseTimerEl) phaseTimerEl.textContent = `REST: ${remBreak.toFixed(1)}s`;
+      if (primaryNum) primaryNum.textContent = `${remBreak.toFixed(1)}s`;
+      if (primaryUnit) primaryUnit.textContent = `RESTING • NEXT: SET ${workoutSubSetIdx} OF ${stage.sets}`;
+    } else {
+      const remHold = Math.max(0, stage.holdSec - workoutHoldSecDone);
+      if (phaseTimerEl) phaseTimerEl.textContent = `${remHold.toFixed(1)}s`;
+      if (primaryNum) primaryNum.textContent = `${remHold.toFixed(1)}s`;
+      if (primaryUnit) primaryUnit.textContent = `SET ${workoutSubSetIdx} OF ${stage.sets} (${stage.holdSec}s)`;
+    }
+  } else if (stage.type === "break") {
+    if (phaseTimerEl) phaseTimerEl.textContent = `${workoutBreakRemaining.toFixed(1)}s`;
+    if (primaryNum) primaryNum.textContent = `${workoutBreakRemaining.toFixed(1)}s`;
+    if (primaryUnit) primaryUnit.textContent = "RELAX & BREATHE";
+  }
+}
+
+function completeWorkout() {
+  stopWorkoutGame();
+
+  playTone(523, 160, "triangle");
+  setTimeout(() => playTone(659, 160, "triangle"), 160);
+  setTimeout(() => playTone(784, 160, "triangle"), 320);
+  setTimeout(() => playTone(1046, 380, "triangle"), 480);
+  sendRewardOnce("workout");
+
+  const stats = recordWorkoutCompletion(workoutDurationMin);
+
+  switchScreen("hub");
+  const hub = document.getElementById("screen-hub");
+  if (hub) hub.dataset.view = "workout";
+  const workoutTab = document.getElementById("tab-workout");
+  const sessionsTab = document.getElementById("tab-sessions");
+  const prisonTab = document.getElementById("tab-prison");
+  const settingsTab = document.getElementById("tab-settings");
+  if (workoutTab) workoutTab.setAttribute("aria-pressed", "true");
+  if (sessionsTab) sessionsTab.setAttribute("aria-pressed", "false");
+  if (prisonTab) prisonTab.setAttribute("aria-pressed", "false");
+  if (settingsTab) settingsTab.setAttribute("aria-pressed", "false");
+
+  renderWorkoutDashboard(
+    `🎉 Daily Workout Cleared! +${workoutDurationMin}m recorded. Current streak: ${stats.streak} day${stats.streak === 1 ? "" : "s"}!`
+  );
+}
+
+function stopWorkoutGame() {
+  workoutActive = false;
+  if (workoutTicker) {
+    clearInterval(workoutTicker);
+    workoutTicker = null;
+  }
+  stopBpmPacer();
+  stopPunishLoop();
+}
+
+function resetWorkoutGameArena() {
+  stopWorkoutGame();
+  startWorkoutGame(selectedWorkoutDuration);
+}
+
+function renderWorkoutDashboard(bannerMsg = null) {
+  const stats = loadDailyTrainingStats();
+  const streakEl = document.getElementById("workout-streak-val");
+  const totalMinEl = document.getElementById("workout-total-min");
+  const totalSessionsEl = document.getElementById("workout-total-sessions");
+
+  if (streakEl) streakEl.textContent = String(stats.streak || 0);
+  if (totalMinEl) totalMinEl.textContent = String(stats.totalMin || 0);
+  if (totalSessionsEl) totalSessionsEl.textContent = String(stats.totalSessions || 0);
+
+  const duration = selectedWorkoutDuration || 10;
+  const routine = WORKOUT_ROUTINES[duration] || WORKOUT_ROUTINES[10];
+
+  const planTitle = document.getElementById("workout-plan-title");
+  const phasesBadge = document.getElementById("workout-plan-phases-badge");
+  const planList = document.getElementById("workout-plan-list");
+
+  if (planTitle) {
+    const labels = {
+      5: "5-Minute Express Daily",
+      10: "10-Minute Standard Workout",
+      15: "15-Minute Intensive Conditioning",
+      20: "20-Minute Mastery Endurance"
+    };
+    planTitle.textContent = labels[duration] || `${duration}-Minute Workout`;
+  }
+
+  if (phasesBadge) {
+    phasesBadge.textContent = `${routine.length} PHASES`;
+  }
+
+  if (planList) {
+    planList.innerHTML = routine.map((step, i) => {
+      let spec = "";
+      if (step.type === "bpm") spec = `${step.bpm} BPM • ${step.durationSec}s`;
+      else if (step.type === "hold") spec = `${step.holdSec}s Hold`;
+      else if (step.type === "hold_sets") spec = `${step.sets} × ${step.holdSec}s (${step.breakSec}s break)`;
+      else if (step.type === "break") spec = `${step.durationSec}s Rest`;
+
+      return `
+        <div class="workout-plan-item">
+          <div class="workout-plan-left">
+            <span class="workout-plan-num">${i + 1}.</span>
+            <span class="workout-plan-name">${step.title}</span>
+          </div>
+          <span class="workout-plan-spec">${spec}</span>
+        </div>
+      `;
+    }).join("");
+  }
+
+  if (bannerMsg) {
+    const banner = document.createElement("div");
+    banner.className = "notice-banner";
+    banner.style.cssText = "background: rgba(21, 128, 61, 0.25); border: 1px solid #16a34a; color: #fff; padding: 12px 16px; border-radius: var(--radius-control); margin-bottom: 12px; font-weight: 600; text-align: center;";
+    banner.textContent = bannerMsg;
+    const heroCard = document.querySelector(".workout-hero-card");
+    if (heroCard && heroCard.parentNode) {
+      heroCard.parentNode.insertBefore(banner, heroCard);
+      setTimeout(() => banner.remove(), 7000);
+    }
+  }
+}
+
+function initWorkoutSystem() {
+  document.querySelectorAll(".workout-duration-pill").forEach(pill => {
+    pill.addEventListener("click", () => {
+      document.querySelectorAll(".workout-duration-pill").forEach(p => p.classList.remove("active"));
+      pill.classList.add("active");
+      const d = parseInt(pill.getAttribute("data-workout-duration"), 10) || 10;
+      selectedWorkoutDuration = d;
+      renderWorkoutDashboard();
+    });
+  });
+
+  const startBtn = document.getElementById("btn-workout-start");
+  if (startBtn) {
+    startBtn.addEventListener("click", () => {
+      rewardSentForSession = false;
+      switchScreen("game-workout");
+    });
+  }
+
+  const forfeitBtn = document.getElementById("btn-workout-forfeit");
+  if (forfeitBtn) {
+    forfeitBtn.addEventListener("pointerdown", e => e.stopPropagation());
+    forfeitBtn.addEventListener("click", () => {
+      if (confirm("Abandon your daily workout? Your progress for this session will not be saved.")) {
+        stopWorkoutGame();
+        switchScreen("hub");
+        const hub = document.getElementById("screen-hub");
+        if (hub) hub.dataset.view = "workout";
+        const workoutTab = document.getElementById("tab-workout");
+        const sessionsTab = document.getElementById("tab-sessions");
+        const prisonTab = document.getElementById("tab-prison");
+        const settingsTab = document.getElementById("tab-settings");
+        if (workoutTab) workoutTab.setAttribute("aria-pressed", "true");
+        if (sessionsTab) sessionsTab.setAttribute("aria-pressed", "false");
+        if (prisonTab) prisonTab.setAttribute("aria-pressed", "false");
+        if (settingsTab) settingsTab.setAttribute("aria-pressed", "false");
+        renderWorkoutDashboard();
+      }
+    });
+  }
+
+  const workoutArena = document.getElementById("workout-arena");
+  if (workoutArena) {
+    workoutArena.addEventListener("pointerdown", e => {
+      if (e.target && e.target.closest && e.target.closest("#btn-workout-forfeit")) return;
+      if (e && e.preventDefault) e.preventDefault();
+      if (config.inputSource === "touch") handlePhysicalInputState(true);
+    });
+  }
+
+  renderWorkoutDashboard();
+}
+
 // App Startup
 window.addEventListener("DOMContentLoaded", () => {
   initHoldChallengeGame();
@@ -7083,4 +7736,5 @@ window.addEventListener("DOMContentLoaded", () => {
   initSettingsPage();
   initSessionSharing();
   initPrisonCampaign();
+  initWorkoutSystem();
 });
