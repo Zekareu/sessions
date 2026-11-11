@@ -543,7 +543,7 @@
             </div>
             
             <div class="mp-preview-container">
-              <video id="mp-video" autoplay playsinline muted style="display:none;"></video>
+              <video id="mp-video" autoplay playsinline webkit-playsinline muted style="position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; left: -9999px; top: 0;"></video>
               <canvas id="mp-canvas" width="240" height="180" class="mp-canvas"></canvas>
               <div id="mp-indicator-badge" class="mp-badge badge-far">OUT OF DEPTH</div>
             </div>
@@ -666,7 +666,7 @@
               <span>Brightness: <b id="cam-meter-val">0</b>%</span>
               <div class="meter-bar"><div id="cam-meter-fill" class="meter-fill"></div></div>
             </div>
-            <video id="cam-video" autoplay playsinline muted style="display:none;"></video>
+            <video id="cam-video" autoplay playsinline webkit-playsinline muted style="position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; left: -9999px; top: 0;"></video>
             <canvas id="cam-canvas" width="16" height="16" style="display:none;"></canvas>
           </div>
 

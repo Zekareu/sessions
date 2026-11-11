@@ -4492,10 +4492,24 @@ async function startMediaPipeDepth() {
     const video = document.getElementById("mp-video");
     if (!mediaPipeStream) {
       mediaPipeStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } }
+        video: {
+          facingMode: "user",
+          width: { ideal: 640 },
+          height: { ideal: 480 }
+        }
       });
-      video.srcObject = mediaPipeStream;
-      await video.play();
+      if (video) {
+        video.muted = true;
+        video.playsInline = true;
+        video.setAttribute("playsinline", "");
+        video.setAttribute("webkit-playsinline", "");
+        video.srcObject = mediaPipeStream;
+        try {
+          await video.play();
+        } catch (playErr) {
+          console.warn("Video play error on mobile:", playErr);
+        }
+      }
     }
 
     isMediaPipeActive = true;
@@ -4528,6 +4542,10 @@ function stopMediaPipeDepth() {
     mediaPipeStream.getTracks().forEach(t => t.stop());
     mediaPipeStream = null;
   }
+  const video = document.getElementById("mp-video");
+  if (video) {
+    video.srcObject = null;
+  }
   isMediaPipeActive = false;
   isMediaPipeSending = false;
 
@@ -4539,18 +4557,43 @@ function stopMediaPipeDepth() {
   }
 }
 
+let lastMediaPipeResultTime = 0;
+
 async function processMediaPipeFrame() {
   if (!isMediaPipeActive) return;
 
   const video = document.getElementById("mp-video");
-  if (video && video.readyState >= 2 && faceMeshInstance && !isMediaPipeSending) {
-    isMediaPipeSending = true;
-    try {
-      await faceMeshInstance.send({ image: video });
-    } catch (e) {
-      console.warn("FaceMesh send error:", e);
-    } finally {
-      isMediaPipeSending = false;
+  const canvas = document.getElementById("mp-canvas");
+
+  if (video && (video.readyState >= 2 || video.videoWidth > 0)) {
+    // Keep canvas resolution synced to camera aspect ratio (especially portrait cameras on mobile)
+    if (canvas && video.videoWidth && video.videoHeight) {
+      const vAspect = video.videoWidth / video.videoHeight;
+      if (Math.abs((canvas.width / canvas.height) - vAspect) > 0.05) {
+        canvas.width = 240;
+        canvas.height = Math.round(240 / vAspect);
+      }
+    }
+
+    // If MediaPipe is still initializing or between frames, ensure video displays on canvas
+    if (!lastMediaPipeResultTime || (Date.now() - lastMediaPipeResultTime > 600)) {
+      if (canvas) {
+        const ctx = canvas.getContext("2d");
+        try {
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        } catch (_) {}
+      }
+    }
+
+    if (faceMeshInstance && !isMediaPipeSending) {
+      isMediaPipeSending = true;
+      try {
+        await faceMeshInstance.send({ image: video });
+      } catch (e) {
+        console.warn("FaceMesh send error:", e);
+      } finally {
+        isMediaPipeSending = false;
+      }
     }
   }
 
@@ -4558,6 +4601,7 @@ async function processMediaPipeFrame() {
 }
 
 function onMediaPipeResults(results) {
+  lastMediaPipeResultTime = Date.now();
   const canvas = document.getElementById("mp-canvas");
   if (!canvas) return;
   const ctx = canvas.getContext("2d");
@@ -4567,10 +4611,13 @@ function onMediaPipeResults(results) {
   ctx.save();
   ctx.clearRect(0, 0, w, h);
 
+  const video = document.getElementById("mp-video");
+  const frameSource = results.image || (video && (video.readyState >= 2 || video.videoWidth > 0) ? video : null);
+
   let rawFrameImgData = null;
-  if (results.image) {
-    ctx.drawImage(results.image, 0, 0, w, h);
+  if (frameSource) {
     try {
+      ctx.drawImage(frameSource, 0, 0, w, h);
       rawFrameImgData = ctx.getImageData(0, 0, w, h);
     } catch (_) {}
   }
