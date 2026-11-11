@@ -7641,7 +7641,7 @@ function renderWorkoutDashboard(bannerMsg = null) {
   const duration = selectedWorkoutDuration || 10;
   const routine = WORKOUT_ROUTINES[duration] || WORKOUT_ROUTINES[10];
 
-  document.querySelectorAll(".workout-duration-card, .workout-duration-pill").forEach(c => {
+  document.querySelectorAll(".workout-card, .workout-duration-card, .workout-duration-pill").forEach(c => {
     const cardDuration = parseInt(c.getAttribute("data-workout-duration"), 10);
     const isActive = cardDuration === duration;
     c.classList.toggle("active", isActive);
@@ -7651,6 +7651,7 @@ function renderWorkoutDashboard(bannerMsg = null) {
   const planTitle = document.getElementById("workout-plan-title");
   const phasesBadge = document.getElementById("workout-plan-phases-badge");
   const planList = document.getElementById("workout-plan-list");
+  const startBtn = document.getElementById("btn-workout-start");
 
   if (planTitle) {
     const labels = {
@@ -7660,6 +7661,10 @@ function renderWorkoutDashboard(bannerMsg = null) {
       20: "20-Minute Mastery Endurance"
     };
     planTitle.textContent = labels[duration] || `${duration}-Minute Workout`;
+  }
+
+  if (startBtn) {
+    startBtn.textContent = `Start ${duration}-Minute Workout`;
   }
 
   if (phasesBadge) {
@@ -7720,7 +7725,7 @@ function renderWorkoutDashboard(bannerMsg = null) {
 }
 
 function initWorkoutSystem() {
-  const durationCards = document.querySelectorAll(".workout-duration-card, .workout-duration-pill");
+  const durationCards = document.querySelectorAll(".workout-card, .workout-duration-card, .workout-duration-pill");
   durationCards.forEach(card => {
     const selectCard = () => {
       durationCards.forEach(c => {

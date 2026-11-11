@@ -1320,62 +1320,37 @@ body[data-game-state="stalling"] .tower-stats-header * {
   border-color: #555;
 }
 
-/* 2x2 Session Duration Cards */
-.workout-duration-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  width: 100%;
-  margin-top: 6px;
+/* Workout Routine Cards (Matching Sessions Grid & Card Design) */
+.workout-hub-hero {
+  padding-top: 28px !important;
+  padding-bottom: 12px !important;
 }
 
-.workout-duration-card {
-  background: #0d0d0d;
-  border: 1px solid #333;
-  border-radius: var(--radius-panel);
-  padding: 14px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+.workout-cards-grid {
+  margin-top: 4px;
+  margin-bottom: 24px;
+}
+
+.workout-card {
+  position: relative;
   cursor: pointer;
-  transition: border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
-  text-align: left;
-  user-select: none;
-  outline: none;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
 }
 
-.workout-duration-card:hover {
-  border-color: #555;
-  background: #141414;
+.workout-card.active {
+  border: 2px solid #fff !important;
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.14);
 }
 
-.workout-duration-card:focus-visible {
-  border-color: #fff;
-  outline: 2px solid #fff;
-  outline-offset: 2px;
-}
-
-.workout-duration-card.active {
-  background: #181818;
-  border: 1.5px solid #fff;
-  box-shadow: 0 0 14px rgba(255, 255, 255, 0.08);
-}
-
-.workout-duration-card-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.workout-duration-time-wrap {
+.workout-card-badge-row {
   display: flex;
   align-items: center;
   gap: 8px;
+  margin-bottom: 10px;
 }
 
-.workout-duration-badge {
-  font-size: 0.8rem;
+.workout-card-badge {
+  font-size: 0.78rem;
   font-weight: 800;
   font-family: var(--font-mono, monospace);
   color: #000;
@@ -1385,52 +1360,54 @@ body[data-game-state="stalling"] .tower-stats-header * {
   letter-spacing: 0.04em;
 }
 
-.workout-duration-tier {
-  font-size: 0.92rem;
-  font-weight: 700;
-  color: #fff;
-}
-
-.workout-duration-check {
+.workout-card-tag {
   font-size: 0.72rem;
   font-weight: 700;
-  text-transform: uppercase;
+  color: #aaa;
   letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.workout-card-check {
+  margin-left: auto;
+  font-size: 0.72rem;
+  font-weight: 800;
   color: #4ade80;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   display: none;
 }
 
-.workout-duration-card.active .workout-duration-check {
+.workout-card.active .workout-card-check {
   display: inline-block;
 }
 
-.workout-duration-card-stats {
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: #aaa;
-  font-family: var(--font-mono, monospace);
-  line-height: 1.4;
+.workout-details-section {
+  background: #080808;
+  border: 1px solid #4a4a4a;
+  border-radius: var(--radius-panel);
+  padding: 22px;
+  margin-top: 14px;
 }
 
-.workout-duration-card-desc {
-  font-size: 0.8rem;
-  color: #777;
-  line-height: 1.4;
+.workout-details-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.workout-details-header h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #fff;
   margin: 0;
 }
 
-.workout-duration-card.active .workout-duration-card-desc {
-  color: #ccc;
-}
-
-@media (max-width: 600px) {
-  .workout-duration-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
 .workout-start-wrap {
-  margin-top: 24px;
+  margin-top: 22px;
   display: flex;
   justify-content: center;
   width: 100%;

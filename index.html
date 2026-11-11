@@ -289,72 +289,87 @@
           </div>
         </div>
 
-        <!-- Workout Duration Selector Card -->
-        <div class="prison-warden-card" style="margin-top: 12px; padding: 20px;">
-          <div style="font-size: 0.78rem; font-weight: 700; letter-spacing: 0.12em; color: #aaa; text-transform: uppercase; margin-bottom: 10px;">Select Session Length</div>
-          <div class="workout-duration-grid" role="radiogroup" aria-label="Select Session Length">
-            <div class="workout-duration-card" data-workout-duration="5" role="radio" aria-checked="false" tabindex="0">
-              <div class="workout-duration-card-head">
-                <div class="workout-duration-time-wrap">
-                  <span class="workout-duration-badge">5 MIN</span>
-                  <span class="workout-duration-tier">Express</span>
-                </div>
-                <span class="workout-duration-check">✓ Active</span>
-              </div>
-              <div class="workout-duration-card-stats">5 Exercises • 45–55 BPM • 3×15s + 30s Holds</div>
-              <p class="workout-duration-card-desc">Quick high-efficiency routine. Acclimation tempo, hold block, paced cadence drive, and finisher hold.</p>
-            </div>
+        <!-- Workout Routine Selection Header -->
+        <div class="hub-hero workout-hub-hero">
+          <h1>Choose a workout routine</h1>
+          <p>Select your daily training length to inspect the drill sequence and lock in your daily discipline.</p>
+        </div>
 
-            <div class="workout-duration-card active" data-workout-duration="10" role="radio" aria-checked="true" tabindex="0">
-              <div class="workout-duration-card-head">
-                <div class="workout-duration-time-wrap">
-                  <span class="workout-duration-badge">10 MIN</span>
-                  <span class="workout-duration-tier">Standard</span>
-                </div>
-                <span class="workout-duration-check">✓ Active</span>
+        <!-- Workout Routine Cards (Matching Sessions Card Design) -->
+        <div class="game-cards-grid workout-cards-grid">
+          <!-- Card 1: 5 Min Express -->
+          <div class="game-card workout-card" data-workout-duration="5" role="button" tabindex="0">
+            <img class="card-image" src="images/pulse-runner.webp" alt="5 MIN Express" loading="lazy">
+            <div class="card-body">
+              <div class="workout-card-badge-row">
+                <span class="workout-card-badge">5 MIN</span>
+                <span class="workout-card-tag">EXPRESS</span>
+                <span class="workout-card-check">✓ Active</span>
               </div>
-              <div class="workout-duration-card-stats">7 Exercises • 45–65 BPM • 3×20s + 2×25s + 40s Holds</div>
-              <p class="workout-duration-card-desc">Balanced daily conditioning. Warmup cadence, hold block, tempo acceleration ladder, and climactic hold.</p>
-            </div>
-
-            <div class="workout-duration-card" data-workout-duration="15" role="radio" aria-checked="false" tabindex="0">
-              <div class="workout-duration-card-head">
-                <div class="workout-duration-time-wrap">
-                  <span class="workout-duration-badge">15 MIN</span>
-                  <span class="workout-duration-tier">Intensive</span>
-                </div>
-                <span class="workout-duration-check">✓ Active</span>
-              </div>
-              <div class="workout-duration-card-stats">8 Exercises • 50–70 BPM • 3×20s + 2×25s + 45s Holds</div>
-              <p class="workout-duration-card-desc">High-stamina conditioning. Extended tempo drive, post-cadence hold, cadence surge, and mastery hold.</p>
-            </div>
-
-            <div class="workout-duration-card" data-workout-duration="20" role="radio" aria-checked="false" tabindex="0">
-              <div class="workout-duration-card-head">
-                <div class="workout-duration-time-wrap">
-                  <span class="workout-duration-badge">20 MIN</span>
-                  <span class="workout-duration-tier">Endurance</span>
-                </div>
-                <span class="workout-duration-check">✓ Active</span>
-              </div>
-              <div class="workout-duration-card-stats">8 Exercises • 50–75 BPM • 4×20s + 3×30s + 60s Climax</div>
-              <p class="workout-duration-card-desc">Heavy athletic test. Long endurance pacing, foundation &amp; deep hold blocks, peak tempo push, and 60s climax hold.</p>
+              <h3>EXPRESS CADENCE</h3>
+              <p>5 exercises mixing steady 45–55 BPM cadence with 15s and 30s deep holds. Quick, focused conditioning.</p>
             </div>
           </div>
 
-          <!-- Plan Breakdown -->
-          <div style="margin-top: 24px; width: 100%;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-              <span id="workout-plan-title" style="font-size: 0.95rem; font-weight: 700; color: #fff;">10-Minute Standard Workout</span>
-              <span id="workout-plan-phases-badge" class="badge-tower-tag">7 EXERCISES</span>
+          <!-- Card 2: 10 Min Standard -->
+          <div class="game-card workout-card active" data-workout-duration="10" role="button" tabindex="0">
+            <img class="card-image" src="images/daily-training.webp" alt="10 MIN Standard" loading="lazy">
+            <div class="card-body">
+              <div class="workout-card-badge-row">
+                <span class="workout-card-badge">10 MIN</span>
+                <span class="workout-card-tag">STANDARD</span>
+                <span class="workout-card-check">✓ Active</span>
+              </div>
+              <h3>STANDARD DAILY</h3>
+              <p>7 exercises with ascending cadence ladders (45–65 BPM), double post-tempo holds, and a 40s finisher hold.</p>
             </div>
-            <div id="workout-plan-list" class="workout-plan-list">
-              <!-- Populated dynamically -->
+          </div>
+
+          <!-- Card 3: 15 Min Intensive -->
+          <div class="game-card workout-card" data-workout-duration="15" role="button" tabindex="0">
+            <img class="card-image" src="images/tempo-ascent.webp" alt="15 MIN Intensive" loading="lazy">
+            <div class="card-body">
+              <div class="workout-card-badge-row">
+                <span class="workout-card-badge">15 MIN</span>
+                <span class="workout-card-tag">INTENSIVE</span>
+                <span class="workout-card-check">✓ Active</span>
+              </div>
+              <h3>INTENSIVE SURGE</h3>
+              <p>8 exercises featuring tempo drives up to 70 BPM, rapid recovery intervals, and a 45s mastery hold.</p>
             </div>
+          </div>
+
+          <!-- Card 4: 20 Min Endurance -->
+          <div class="game-card workout-card" data-workout-duration="20" role="button" tabindex="0">
+            <img class="card-image" src="images/hold-summit.webp" alt="20 MIN Endurance" loading="lazy">
+            <div class="card-body">
+              <div class="workout-card-badge-row">
+                <span class="workout-card-badge">20 MIN</span>
+                <span class="workout-card-tag">ENDURANCE</span>
+                <span class="workout-card-check">✓ Active</span>
+              </div>
+              <h3>ENDURANCE MASTERY</h3>
+              <p>8 exercises testing peak stamina with 50–75 BPM pacing, multi-set deep holds, and an ultimate 60s climax hold.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Routine Blueprint & Start Panel -->
+        <div class="workout-details-section">
+          <div class="workout-details-header">
+            <div>
+              <span class="prison-kicker">ROUTINE BLUEPRINT</span>
+              <h2 id="workout-plan-title">10-Minute Standard Workout</h2>
+            </div>
+            <span id="workout-plan-phases-badge" class="badge-tower-tag">7 EXERCISES</span>
+          </div>
+
+          <div id="workout-plan-list" class="workout-plan-list">
+            <!-- Populated dynamically -->
           </div>
 
           <div class="workout-start-wrap">
-            <button id="btn-workout-start" type="button" class="btn btn-primary">Start Daily Workout</button>
+            <button id="btn-workout-start" type="button" class="btn btn-primary">Start 10-Minute Workout</button>
           </div>
         </div>
       </section>
