@@ -7677,16 +7677,16 @@ function renderWorkoutDashboard(bannerMsg = null) {
 
       return `
         <div class="workout-plan-item">
-          <div class="workout-plan-row-main">
-            <div class="workout-plan-left">
+          <div class="workout-plan-col-left">
+            <div class="workout-plan-header-line">
               <span class="workout-plan-num">${String(i + 1).padStart(2, "0")}</span>
               ${badgeHtml}
-              <span class="workout-plan-name">${step.title}</span>
+              <h4 class="workout-plan-name">${step.title}</h4>
             </div>
-            <span class="workout-plan-spec">${spec}</span>
+            <p class="workout-plan-desc">${subDesc}</p>
           </div>
-          <div class="workout-plan-row-sub">
-            <span>${subDesc}</span>
+          <div class="workout-plan-col-right">
+            <div class="workout-plan-spec">${spec}</div>
             ${restBadge}
           </div>
         </div>

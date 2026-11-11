@@ -488,6 +488,22 @@ select:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
   }
   #screen-hub .settings-section { display: block !important; }
   #screen-hub[data-view="settings"] .hub-sessions { display: block; }
+  #screen-hub[data-view="workout"] .hub-layout,
+  #screen-hub[data-view="prison"] .hub-layout {
+    display: block;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 20px 28px 40px;
+  }
+  #screen-hub[data-view="workout"] .settings-section,
+  #screen-hub[data-view="prison"] .settings-section {
+    display: none !important;
+  }
+  #screen-hub[data-view="workout"] .hub-workout,
+  #screen-hub[data-view="prison"] .hub-prison {
+    width: 100%;
+    max-width: 100%;
+  }
   .hub-prison { padding: 0 0 40px; }
   .hub-layout .hub-hero { padding: 6px 0 24px; }
   .hub-layout .game-cards-grid {
@@ -1323,50 +1339,53 @@ body[data-game-state="stalling"] .tower-stats-header * {
 .workout-plan-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  background: rgba(0, 0, 0, 0.55);
+  gap: 10px;
+  background: rgba(0, 0, 0, 0.45);
   border: 1px solid #333;
   border-radius: var(--radius-control);
-  padding: 12px;
+  padding: 14px;
+  width: 100%;
 }
 
 .workout-plan-item {
   display: flex;
-  flex-direction: column;
-  gap: 5px;
-  padding: 10px 12px;
-  background: #111;
-  border: 1px solid #2a2a2a;
-  border-radius: var(--radius-small);
-  transition: border-color 0.15s ease;
-}
-
-.workout-plan-item:hover {
-  border-color: #444;
-}
-
-.workout-plan-row-main {
-  display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 18px;
+  padding: 14px 18px;
+  background: #0d0d0d;
+  border: 1px solid #282828;
+  border-radius: var(--radius-small);
+  transition: border-color 0.15s ease, background 0.15s ease;
   width: 100%;
 }
 
-.workout-plan-left {
+.workout-plan-item:hover {
+  border-color: #555;
+  background: #141414;
+}
+
+.workout-plan-col-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+
+.workout-plan-header-line {
   display: flex;
   align-items: center;
-  gap: 8px;
-  min-width: 0;
+  gap: 10px;
   flex-wrap: wrap;
 }
 
 .workout-plan-num {
-  font-size: 0.76rem;
+  font-size: 0.8rem;
   font-weight: 700;
   color: #777;
   font-family: var(--font-mono, monospace);
-  min-width: 20px;
+  min-width: 22px;
 }
 
 .workout-type-badge {
@@ -1393,37 +1412,58 @@ body[data-game-state="stalling"] .tower-stats-header * {
 }
 
 .workout-plan-name {
-  font-size: 0.92rem;
-  font-weight: 650;
+  font-size: 0.98rem;
+  font-weight: 700;
   color: #fff;
-  line-height: 1.3;
+  margin: 0;
+}
+
+.workout-plan-desc {
+  font-size: 0.82rem;
+  color: #888;
+  margin: 0;
+  padding-left: 32px;
+  line-height: 1.4;
+}
+
+.workout-plan-col-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+  flex-shrink: 0;
+  text-align: right;
 }
 
 .workout-plan-spec {
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: #ddd;
+  font-size: 0.96rem;
+  font-weight: 700;
+  color: #fff;
   font-family: var(--font-mono, monospace);
+  letter-spacing: -0.01em;
   white-space: nowrap;
-  flex-shrink: 0;
-}
-
-.workout-plan-row-sub {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 0.78rem;
-  color: #888;
-  gap: 8px;
-  padding-left: 28px;
 }
 
 .workout-rest-badge {
-  color: #aaa;
   font-size: 0.74rem;
-  background: rgba(255, 255, 255, 0.06);
-  padding: 1px 7px;
+  color: #aaa;
+  background: rgba(255, 255, 255, 0.07);
+  padding: 2px 8px;
   border-radius: 4px;
   white-space: nowrap;
-  flex-shrink: 0;
+}
+
+@media (max-width: 580px) {
+  .workout-plan-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .workout-plan-col-right {
+    align-items: flex-start;
+    padding-left: 32px;
+    flex-direction: row;
+    justify-content: space-between;
+    width: 100%;
+  }
 }
