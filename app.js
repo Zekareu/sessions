@@ -422,13 +422,13 @@ function sendRewardOnce(game) {
 
 let currentPunishIntensityOverride = null;
 
-function startPunishLoop(intensityOverride = null) {
+function startPunishLoop(intensityOverride = null, intervalMs = 1600) {
   currentPunishIntensityOverride = intensityOverride;
   if (punishLoopInterval) return;
   sendPunishment(null, currentPunishIntensityOverride);
   punishLoopInterval = setInterval(() => {
     sendPunishment(null, currentPunishIntensityOverride);
-  }, 1600);
+  }, intervalMs);
 }
 
 function stopPunishLoop() {
@@ -643,6 +643,10 @@ function switchScreen(targetScreen) {
 
 function handleBackNavigation() {
   if (currentScreen === "game-prison") {
+    if (prisonPenaltyActive) {
+      // Cannot escape during mandatory penalty hold!
+      return;
+    }
     if (prisonHasStartedStage && pendingPrisonAssignment) {
       if (pendingPrisonAssignment.cumulativeKey) {
         savePrisonState();
@@ -6160,15 +6164,23 @@ let prisonBpmRemaining = 0;
 let prisonExpectedBeatFraction = 0;
 let prisonExpectedBeats = 0;
 let prisonBpmDebt = 0;
+let prisonPenaltyActive = false;
+let prisonPenaltyHoldRemaining = 5.0;
+let prisonPenaltyReason = "";
 
 function stopPrisonGame() {
   prisonGameActive = false;
+  prisonPenaltyActive = false;
   if (prisonTicker) {
     clearInterval(prisonTicker);
     prisonTicker = null;
   }
   stopBpmPacer();
   stopPunishLoop();
+  const forfeitBtn = document.getElementById("btn-prison-forfeit");
+  if (forfeitBtn) {
+    forfeitBtn.disabled = false;
+  }
 }
 
 function resetPrisonGameArena() {
@@ -6184,6 +6196,7 @@ function resetPrisonGameArena() {
 function setupPrisonStage(idx) {
   stopBpmPacer();
   stopPunishLoop();
+  prisonPenaltyActive = false;
   prisonStageIdx = idx;
   const assign = pendingPrisonAssignment;
   const stage = assign.stages[idx];
@@ -6271,14 +6284,25 @@ function setupPrisonStage(idx) {
 
 function updatePrisonArenaReadout() {
   if (!pendingPrisonAssignment) return;
-  const stage = pendingPrisonAssignment.stages[prisonStageIdx];
-  if (!stage) return;
 
   const timerEl = document.getElementById("prison-game-timer");
   const breakEl = document.getElementById("prison-game-break");
   const primaryEl = document.getElementById("prison-game-primary");
   const unitEl = document.getElementById("prison-game-unit");
   const fillEl = document.getElementById("prison-game-progress-fill");
+
+  if (prisonPenaltyActive) {
+    if (timerEl) timerEl.textContent = `PENALTY: ${prisonPenaltyHoldRemaining.toFixed(1)}s`;
+    if (breakEl) breakEl.textContent = isPhysicalDown ? "HOLDING (SAFE)" : "SHOCKING (2s)";
+    if (primaryEl) primaryEl.textContent = prisonPenaltyHoldRemaining.toFixed(1);
+    if (unitEl) unitEl.textContent = isPhysicalDown ? "HOLD DEEP FOR 5s TO CLEAR PENALTY" : "RELEASED — SHOCK ACTIVE EVERY 2s!";
+    const pct = ((5.0 - prisonPenaltyHoldRemaining) / 5.0) * 100;
+    if (fillEl) fillEl.style.width = `${Math.min(100, Math.max(0, pct))}%`;
+    return;
+  }
+
+  const stage = pendingPrisonAssignment.stages[prisonStageIdx];
+  if (!stage) return;
 
   if (prisonStagePrepRemaining > 0) {
     timerEl.textContent = `PREP: ${prisonStagePrepRemaining.toFixed(1)}s`;
@@ -6346,6 +6370,29 @@ function updatePrisonArenaReadout() {
 
 function handlePrisonSensorInput(isDown) {
   if (!prisonGameActive || !pendingPrisonAssignment) return;
+
+  if (prisonPenaltyActive) {
+    if (isDown) {
+      stopPunishLoop();
+      playTone(620, 50, "sine");
+      setUnifiedGameState(
+        "holding",
+        `PENALTY HOLD: ${prisonPenaltyHoldRemaining.toFixed(1)}s`,
+        "FEEDBACK STOPPED — Keep holding deep for 5.0s unbroken to clear penalty!"
+      );
+    } else {
+      prisonPenaltyHoldRemaining = 5.0;
+      startPunishLoop(config.intensity, 2000);
+      setUnifiedGameState(
+        "punish",
+        "RELEASED! FEEDBACK FIRING EVERY 2s!",
+        "ENGAGE SENSOR & HOLD DEEP FOR 5.0s TO STOP FEEDBACK!"
+      );
+    }
+    updatePrisonArenaReadout();
+    return;
+  }
+
   const stage = pendingPrisonAssignment.stages[prisonStageIdx];
   if (!stage) return;
 
@@ -6475,6 +6522,33 @@ function handlePrisonSensorInput(isDown) {
 
 function tickPrisonArena() {
   if (!prisonGameActive || !pendingPrisonAssignment) return;
+
+  if (prisonPenaltyActive) {
+    if (isPhysicalDown) {
+      stopPunishLoop();
+      prisonPenaltyHoldRemaining = Math.max(0, Math.round((prisonPenaltyHoldRemaining - 0.1) * 10) / 10);
+      setUnifiedGameState(
+        "holding",
+        `PENALTY HOLD: ${prisonPenaltyHoldRemaining.toFixed(1)}s`,
+        "FEEDBACK STOPPED — Keep holding deep for 5.0s unbroken to clear penalty!"
+      );
+      if (prisonPenaltyHoldRemaining <= 0) {
+        finishPrisonPenaltyHold();
+        return;
+      }
+    } else {
+      startPunishLoop(config.intensity, 2000);
+      prisonPenaltyHoldRemaining = 5.0;
+      setUnifiedGameState(
+        "punish",
+        "PENALTY ACTIVE: FIRING EVERY 2s!",
+        "ENGAGE SENSOR & HOLD DEEP FOR 5.0s TO STOP FEEDBACK!"
+      );
+    }
+    updatePrisonArenaReadout();
+    return;
+  }
+
   const stage = pendingPrisonAssignment.stages[prisonStageIdx];
   if (!stage) return;
 
@@ -6767,10 +6841,58 @@ function advanceOrCompletePrisonTask() {
   renderPrisonDashboard();
 }
 
-function failPrisonTask(reason) {
-  stopPrisonGame();
+function startPrisonPenaltyHold(reason) {
+  prisonPenaltyActive = true;
+  prisonPenaltyReason = reason || "Task failed.";
+  prisonPenaltyHoldRemaining = 5.0;
+  prisonGameActive = true;
+
+  stopBpmPacer();
   playTone(165, 450, "sawtooth");
-  sendPunishment(null, config.intensity);
+
+  const pacerCue = document.getElementById("prison-pacer-cue");
+  if (pacerCue) pacerCue.classList.add("hidden");
+  const debtPill = document.getElementById("prison-debt-pill");
+  if (debtPill) debtPill.classList.add("hidden");
+  const delayBox = document.getElementById("prison-delay-box");
+  if (delayBox) delayBox.classList.add("hidden");
+
+  const forfeitBtn = document.getElementById("btn-prison-forfeit");
+  if (forfeitBtn) {
+    forfeitBtn.disabled = true;
+    forfeitBtn.textContent = "Serving 5s Penalty Hold...";
+  }
+
+  if (isPhysicalDown) {
+    stopPunishLoop();
+    setUnifiedGameState(
+      "holding",
+      `PENALTY HOLD: ${prisonPenaltyHoldRemaining.toFixed(1)}s`,
+      "FEEDBACK STOPPED — Keep holding deep for 5.0s unbroken to clear penalty!"
+    );
+  } else {
+    startPunishLoop(config.intensity, 2000);
+    setUnifiedGameState(
+      "punish",
+      "PENALTY ACTIVE: FIRING EVERY 2s!",
+      "ENGAGE SENSOR & HOLD DEEP FOR 5.0s TO STOP FEEDBACK!"
+    );
+  }
+
+  if (!prisonTicker) {
+    prisonTicker = setInterval(tickPrisonArena, 100);
+  }
+  updatePrisonArenaReadout();
+}
+
+function finishPrisonPenaltyHold() {
+  stopPunishLoop();
+  playTone(540, 160, "triangle");
+  setTimeout(() => playTone(720, 220, "sine"), 180);
+
+  const reason = prisonPenaltyReason;
+  prisonPenaltyActive = false;
+  stopPrisonGame();
 
   const assign = pendingPrisonAssignment;
   prisonState.failedCount++;
@@ -6810,6 +6932,11 @@ function failPrisonTask(reason) {
   savePrisonState();
   switchScreen("hub");
   renderPrisonDashboard();
+}
+
+function failPrisonTask(reason) {
+  if (prisonPenaltyActive) return;
+  startPrisonPenaltyHold(reason);
 }
 
 function initPrisonCampaign() {
