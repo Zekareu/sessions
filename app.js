@@ -594,14 +594,19 @@ function setHubView(view) {
 }
 
 function switchScreen(targetScreen) {
+  if (!targetScreen) return;
+  const target = document.getElementById(`screen-${targetScreen}`);
+  if (!target) {
+    console.warn(`switchScreen: screen not found: screen-${targetScreen}`);
+    return;
+  }
   currentScreen = targetScreen;
   if (targetScreen.startsWith("game-")) rewardSentForSession = false;
   if (document.activeElement && typeof document.activeElement.blur === "function") {
     document.activeElement.blur();
   }
   document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
-  const target = document.getElementById(`screen-${targetScreen}`);
-  if (target) target.classList.add("active");
+  target.classList.add("active");
 
   const backBtn = document.getElementById("btn-nav-back");
   const title = document.getElementById("app-title");
@@ -5420,10 +5425,10 @@ window.addEventListener("blur", () => {
 });
 
 // Game Cards on Hub
-document.querySelectorAll(".game-card").forEach(card => {
+document.querySelectorAll(".game-card[data-game]").forEach(card => {
   card.addEventListener("click", () => {
     const game = card.getAttribute("data-game");
-    switchScreen(`setup-${game}`);
+    if (game) switchScreen(`setup-${game}`);
   });
   card.addEventListener("keydown", (event) => {
     if (event.key === "Enter" || event.key === " ") {
