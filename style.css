@@ -1461,7 +1461,8 @@ select:focus-visible {
 .mp-preview-container {
   position: relative;
   width: 100%;
-  max-width: 260px;
+  max-width: 280px;
+  aspect-ratio: 4 / 3;
   margin: 12px auto 6px;
   border-radius: 12px;
   overflow: hidden;
@@ -1479,10 +1480,28 @@ select:focus-visible {
   box-shadow: 0 0 20px rgba(239, 68, 68, 0.45);
 }
 
-.mp-canvas {
+.mp-video-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
-  height: auto;
+  height: 100%;
+  object-fit: cover;
   display: block;
+  z-index: 1;
+}
+
+.mp-canvas-layer,
+.mp-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  pointer-events: none;
+  z-index: 2;
 }
 
 .mp-badge {
@@ -1496,6 +1515,7 @@ select:focus-visible {
   border-radius: 6px;
   backdrop-filter: blur(4px);
   transition: all 0.2s ease;
+  z-index: 3;
 }
 .mp-badge.badge-hilt {
   background: rgba(16, 185, 129, 0.85);

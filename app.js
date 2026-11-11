@@ -4269,12 +4269,66 @@ function loadMediaPipeScript() {
     return Promise.resolve();
   }
   return new Promise((resolve, reject) => {
-    const s = document.createElement("script");
-    s.src = "https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js";
-    s.crossOrigin = "anonymous";
-    s.onload = () => resolve();
-    s.onerror = (e) => reject(new Error("Failed to load MediaPipe FaceMesh from CDN"));
-    document.head.appendChild(s);
+    let resolved = false;
+    let timer = null;
+    let poller = null;
+
+    const cleanup = () => {
+      if (timer) clearTimeout(timer);
+      if (poller) clearInterval(poller);
+    };
+
+    const done = () => {
+      if (!resolved) {
+        resolved = true;
+        cleanup();
+        resolve();
+      }
+    };
+
+    // 1. Poller: Check every 100ms if FaceMesh appeared (e.g. from index.html defer script)
+    poller = setInterval(() => {
+      if (typeof FaceMesh !== "undefined" || (typeof window !== "undefined" && window.FaceMesh)) {
+        done();
+      }
+    }, 100);
+
+    // 2. Safety timeout: after 6 seconds, resolve if FaceMesh is ready or reject gracefully
+    timer = setTimeout(() => {
+      cleanup();
+      if (typeof FaceMesh !== "undefined" || (typeof window !== "undefined" && window.FaceMesh)) {
+        done();
+      } else if (!resolved) {
+        resolved = true;
+        reject(new Error("Timeout loading MediaPipe FaceMesh engine."));
+      }
+    }, 6000);
+
+    // 3. Attach to existing or create new script
+    const existing = document.querySelector('script[src*="face_mesh.js"]');
+    if (existing) {
+      existing.addEventListener("load", done, { once: true });
+      existing.addEventListener("error", () => {
+        cleanup();
+        if (!resolved) {
+          resolved = true;
+          reject(new Error("Failed to load MediaPipe FaceMesh from CDN"));
+        }
+      }, { once: true });
+    } else {
+      const s = document.createElement("script");
+      s.src = "https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js";
+      s.crossOrigin = "anonymous";
+      s.onload = done;
+      s.onerror = () => {
+        cleanup();
+        if (!resolved) {
+          resolved = true;
+          reject(new Error("Failed to load MediaPipe FaceMesh from CDN"));
+        }
+      };
+      document.head.appendChild(s);
+    }
   });
 }
 
@@ -4467,11 +4521,49 @@ async function startMediaPipeDepth() {
 
   if (statusEl) {
     statusEl.className = "support-status";
-    statusEl.innerHTML = "Initializing camera &amp; MediaPipe FaceMesh...";
+    statusEl.innerHTML = "Requesting camera access...";
   }
 
   try {
+    const video = document.getElementById("mp-video");
+    if (!video) throw new Error("Video preview element missing");
+
+    // 1. Request camera immediately so permission prompt appears and preview begins without waiting for FaceMesh download
+    if (!mediaPipeStream) {
+      mediaPipeStream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: "user",
+          width: { ideal: 640 },
+          height: { ideal: 480 }
+        }
+      });
+      video.muted = true;
+      video.playsInline = true;
+      video.setAttribute("playsinline", "");
+      video.setAttribute("webkit-playsinline", "");
+      video.srcObject = mediaPipeStream;
+      video.play().catch((playErr) => {
+        console.warn("Video play notice on mobile:", playErr);
+      });
+    }
+
+    isMediaPipeActive = true;
+    if (toggleBtn) {
+      toggleBtn.textContent = "Stop Face Tracking";
+      toggleBtn.classList.remove("btn-secondary");
+      toggleBtn.classList.add("btn-primary");
+    }
+
+    // Immediately start frame loop so camera video shows on screen
+    processMediaPipeFrame();
+
+    // 2. Load and initialize MediaPipe FaceMesh
     if (!faceMeshInstance) {
+      if (statusEl) {
+        statusEl.className = "support-status";
+        statusEl.innerHTML = "Loading AI FaceMesh tracker...";
+      }
+
       await loadMediaPipeScript();
       const FaceMeshClass = (typeof window !== "undefined" && window.FaceMesh) ? window.FaceMesh : (typeof FaceMesh !== "undefined" ? FaceMesh : null);
       if (!FaceMeshClass) {
@@ -4489,41 +4581,10 @@ async function startMediaPipeDepth() {
       faceMeshInstance.onResults(onMediaPipeResults);
     }
 
-    const video = document.getElementById("mp-video");
-    if (!mediaPipeStream) {
-      mediaPipeStream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: "user",
-          width: { ideal: 640 },
-          height: { ideal: 480 }
-        }
-      });
-      if (video) {
-        video.muted = true;
-        video.playsInline = true;
-        video.setAttribute("playsinline", "");
-        video.setAttribute("webkit-playsinline", "");
-        video.srcObject = mediaPipeStream;
-        try {
-          await video.play();
-        } catch (playErr) {
-          console.warn("Video play error on mobile:", playErr);
-        }
-      }
-    }
-
-    isMediaPipeActive = true;
-    if (toggleBtn) {
-      toggleBtn.textContent = "Stop Face Tracking";
-      toggleBtn.classList.remove("btn-secondary");
-      toggleBtn.classList.add("btn-primary");
-    }
     if (statusEl) {
       statusEl.className = "support-status supported";
       statusEl.innerHTML = "✓ <b>AI FaceMesh Active &amp; Tracking!</b>";
     }
-
-    processMediaPipeFrame();
   } catch (err) {
     console.error("Failed to start MediaPipe FaceMesh:", err);
     if (statusEl) {
@@ -4545,6 +4606,11 @@ function stopMediaPipeDepth() {
   const video = document.getElementById("mp-video");
   if (video) {
     video.srcObject = null;
+  }
+  const canvas = document.getElementById("mp-canvas");
+  if (canvas) {
+    const ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
   }
   isMediaPipeActive = false;
   isMediaPipeSending = false;
