@@ -849,11 +849,13 @@ function switchScreen(targetScreen) {
 
 function handleBackNavigation() {
   if (currentScreen === "game-workout") {
-    if (confirm("Abandon your daily workout? Your progress for this session will not be saved.")) {
+    if (confirm("Abandon your daily workout? Forfeiting triggers punishment and progress will not be saved.")) {
+      sendPunishment();
+      playTone(200, 500, "sawtooth");
       stopWorkoutGame();
       switchScreen("hub");
       setHubView("workout");
-      renderWorkoutDashboard();
+      renderWorkoutDashboard("⚠️ Daily workout forfeited! Forfeit punishment delivered.");
     }
     return;
   }
@@ -7560,6 +7562,10 @@ let workoutTotalDurationSec = 600;
 let workoutBpmTimestamps = [];
 let workoutLiveBpm = 0;
 let workoutTicker = null;
+let workoutHoldEngaged = false;
+let workoutStallTimer = 0;
+let workoutBpmStallSec = 0;
+let workoutIsPunishing = false;
 
 function getLocalDateString(d = new Date()) {
   const year = d.getFullYear();
@@ -7660,6 +7666,10 @@ function setupWorkoutStage(idx) {
   stopPunishLoop();
   resetCountdownAudio();
   workoutInPostStageRest = false;
+  workoutHoldEngaged = false;
+  workoutStallTimer = 0;
+  workoutBpmStallSec = 0;
+  workoutIsPunishing = false;
 
   if (!workoutRoutine || idx >= workoutRoutine.length) {
     completeWorkout();
@@ -7696,7 +7706,7 @@ function setupWorkoutStage(idx) {
     setUnifiedGameState(
       "pause",
       "FOLLOW DOWNBEAT TO MATCH TEMPO",
-      `Follow the downbeat cue to maintain ${stage.bpm} BPM for ${stage.durationSec}s.`
+      `Follow the downbeat cue to maintain ${stage.bpm} BPM for ${stage.durationSec}s. Stalling triggers feedback!`
     );
   } else if (stage.type === "hold_sets") {
     if (pacerCue) pacerCue.classList.add("hidden");
@@ -7704,19 +7714,41 @@ function setupWorkoutStage(idx) {
     workoutHoldSecDone = 0;
     workoutWaitingBreakRelease = false;
     workoutBreakElapsed = 0;
-    setUnifiedGameState(
-      "pause",
-      `SET 1 OF ${stage.sets} — ENGAGE SENSOR`,
-      `Lock in continuous unbroken hold for ${stage.holdSec}s.`
-    );
+    workoutHoldEngaged = false;
+    if (isPhysicalDown) {
+      workoutHoldEngaged = true;
+      playHoldLockCue();
+      setUnifiedGameState(
+        "holding",
+        `SET 1 OF ${stage.sets} — LOCKED IN!`,
+        `Hold continuously for ${stage.holdSec}s unbroken. Releasing shocks!`
+      );
+    } else {
+      setUnifiedGameState(
+        "stalling",
+        `SET 1 OF ${stage.sets} — ENGAGE SENSOR`,
+        `Lock in continuous unbroken hold for ${stage.holdSec}s. Stalling or releasing triggers feedback!`
+      );
+    }
   } else if (stage.type === "hold") {
     if (pacerCue) pacerCue.classList.add("hidden");
     workoutHoldSecDone = 0;
-    setUnifiedGameState(
-      "pause",
-      "ENGAGE SENSOR FOR HOLD",
-      `Hold continuously for ${stage.holdSec}s unbroken.`
-    );
+    workoutHoldEngaged = false;
+    if (isPhysicalDown) {
+      workoutHoldEngaged = true;
+      playHoldLockCue();
+      setUnifiedGameState(
+        "holding",
+        "LOCKED IN HOLD — DO NOT RELEASE!",
+        `Hold continuously for ${stage.holdSec}s unbroken. Releasing shocks!`
+      );
+    } else {
+      setUnifiedGameState(
+        "stalling",
+        "ENGAGE SENSOR FOR HOLD",
+        `Hold continuously for ${stage.holdSec}s unbroken. Stalling or releasing triggers feedback!`
+      );
+    }
   }
 
   updateWorkoutArenaReadout();
@@ -7727,6 +7759,10 @@ function setupWorkoutStage(idx) {
 
 function advanceWorkoutExercise() {
   resetCountdownAudio();
+  if (workoutIsPunishing) {
+    workoutIsPunishing = false;
+    stopPunishLoop();
+  }
   const currentStage = workoutRoutine[workoutStageIdx];
   const nextIdx = workoutStageIdx + 1;
 
@@ -7742,6 +7778,9 @@ function advanceWorkoutExercise() {
 
     workoutInPostStageRest = true;
     workoutPostStageRestRemaining = currentStage.restAfterSec;
+    workoutHoldEngaged = false;
+    workoutStallTimer = 0;
+    workoutBpmStallSec = 0;
 
     const nextStage = workoutRoutine[nextIdx];
     const phaseTitle = document.getElementById("workout-phase-title");
@@ -7789,6 +7828,12 @@ function handleWorkoutSensorInput(isDown) {
 
   if (stage.type === "hold") {
     if (isDown) {
+      workoutHoldEngaged = true;
+      workoutStallTimer = 0;
+      if (workoutIsPunishing) {
+        workoutIsPunishing = false;
+        stopPunishLoop();
+      }
       playHoldLockCue();
       setUnifiedGameState(
         "holding",
@@ -7796,11 +7841,23 @@ function handleWorkoutSensorInput(isDown) {
         `Keep holding deep! ${Math.max(0, stage.holdSec - workoutHoldSecDone).toFixed(1)}s remaining.`
       );
     } else {
-      setUnifiedGameState(
-        "pause",
-        "HOLD PAUSED — RE-ENGAGE SENSOR",
-        `Reach target line to resume remaining ${Math.max(0, stage.holdSec - workoutHoldSecDone).toFixed(1)}s hold.`
-      );
+      if (workoutHoldEngaged) {
+        // Active hold broken early -> continuous shock until re-engaged!
+        workoutIsPunishing = true;
+        playTone(300, 300, "sawtooth");
+        startPunishLoop(config.intensity, 1600);
+        setUnifiedGameState(
+          "punish",
+          "🚨 HOLD BROKEN! FEEDBACK ACTIVE!",
+          `RE-ENGAGE SENSOR IMMEDIATELY! (${Math.max(0, stage.holdSec - workoutHoldSecDone).toFixed(1)}s remaining)`
+        );
+      } else {
+        setUnifiedGameState(
+          "stalling",
+          "ENGAGE SENSOR FOR HOLD",
+          `Reach target line to start remaining ${Math.max(0, stage.holdSec - workoutHoldSecDone).toFixed(1)}s hold.`
+        );
+      }
     }
     updateWorkoutArenaReadout();
     return;
@@ -7818,6 +7875,12 @@ function handleWorkoutSensorInput(isDown) {
       return;
     }
     if (isDown) {
+      workoutHoldEngaged = true;
+      workoutStallTimer = 0;
+      if (workoutIsPunishing) {
+        workoutIsPunishing = false;
+        stopPunishLoop();
+      }
       playHoldLockCue();
       setUnifiedGameState(
         "holding",
@@ -7825,11 +7888,23 @@ function handleWorkoutSensorInput(isDown) {
         `Keep holding! ${Math.max(0, stage.holdSec - workoutHoldSecDone).toFixed(1)}s left.`
       );
     } else {
-      setUnifiedGameState(
-        "pause",
-        `SET ${workoutSubSetIdx} PAUSED — RE-ENGAGE SENSOR`,
-        `Reach target line to finish Set ${workoutSubSetIdx}.`
-      );
+      if (workoutHoldEngaged) {
+        // Active set hold broken early -> continuous shock until re-engaged!
+        workoutIsPunishing = true;
+        playTone(300, 300, "sawtooth");
+        startPunishLoop(config.intensity, 1600);
+        setUnifiedGameState(
+          "punish",
+          `🚨 SET ${workoutSubSetIdx} BROKEN! FEEDBACK ACTIVE!`,
+          `GET BACK TO TARGET POSITION TO FINISH SET ${workoutSubSetIdx}!`
+        );
+      } else {
+        setUnifiedGameState(
+          "stalling",
+          `SET ${workoutSubSetIdx} OF ${stage.sets} — ENGAGE SENSOR`,
+          `Reach target line to finish Set ${workoutSubSetIdx}.`
+        );
+      }
     }
     updateWorkoutArenaReadout();
     return;
@@ -7877,27 +7952,64 @@ function tickWorkoutArena() {
     checkHoldCountdownAudio(workoutStageSecRemaining);
 
     if (workoutStageSecRemaining <= 0) {
+      if (workoutIsPunishing) {
+        workoutIsPunishing = false;
+        stopPunishLoop();
+      }
       playHoldReleaseCue();
       advanceWorkoutExercise();
       return;
     }
 
-    const isPaceCompliant = workoutBpmTimestamps.length <= 1 || workoutLiveBpm >= (stage.bpm * 0.82);
-    if (isPaceCompliant) {
+    const elapsedStageSec = stage.durationSec - workoutStageSecRemaining;
+    const isPaceCompliant = (workoutBpmTimestamps.length >= 2 && workoutLiveBpm >= (stage.bpm * 0.80));
+
+    if (elapsedStageSec < 3.0) {
+      // Warm-up grace window at start of BPM stage
       setUnifiedGameState(
         "holding",
         "MATCHING TARGET TEMPO",
+        `Follow the downbeat pacer to match ${stage.bpm} BPM.`
+      );
+    } else if (isPaceCompliant) {
+      workoutBpmStallSec = Math.max(0, workoutBpmStallSec - 0.2);
+      if (workoutIsPunishing && workoutBpmStallSec <= 0) {
+        workoutIsPunishing = false;
+        stopPunishLoop();
+      }
+      setUnifiedGameState(
+        "holding",
+        `MATCHING TARGET TEMPO (${workoutLiveBpm} BPM)`,
         `Maintain ${stage.bpm} BPM until timer hits 0.0s (${workoutStageSecRemaining.toFixed(1)}s left).`
       );
     } else {
-      setUnifiedGameState(
-        "stalling",
-        `SPEED UP! (CURRENT: ${workoutLiveBpm || 0} BPM)`,
-        `Target tempo is ${stage.bpm} BPM.`
-      );
+      workoutBpmStallSec += 0.1;
+      if (workoutBpmStallSec >= 2.0) {
+        if (!workoutIsPunishing) {
+          workoutIsPunishing = true;
+          startPunishLoop(config.intensity, 1600);
+        }
+        setUnifiedGameState(
+          "punish",
+          `🚨 PACE TOO SLOW (${workoutLiveBpm || 0} BPM)!`,
+          `Continuous feedback active! Speed up to ${stage.bpm} BPM to stop feedback!`
+        );
+      } else {
+        setUnifiedGameState(
+          "stalling",
+          `SPEED UP! (CURRENT: ${workoutLiveBpm || 0} BPM)`,
+          `Target tempo is ${stage.bpm} BPM. Stay on pace to avoid feedback!`
+        );
+      }
     }
   } else if (stage.type === "hold") {
     if (isPhysicalDown) {
+      workoutHoldEngaged = true;
+      workoutStallTimer = 0;
+      if (workoutIsPunishing) {
+        workoutIsPunishing = false;
+        stopPunishLoop();
+      }
       workoutHoldSecDone += 0.1;
       const remHold = Math.max(0, stage.holdSec - workoutHoldSecDone);
       checkHoldCountdownAudio(remHold);
@@ -7909,12 +8021,52 @@ function tickWorkoutArena() {
       setUnifiedGameState(
         "holding",
         "LOCKED IN HOLD — DO NOT RELEASE!",
-        `Keep holding deep! ${Math.max(0, stage.holdSec - workoutHoldSecDone).toFixed(1)}s remaining.`
+        `Keep holding deep! ${remHold.toFixed(1)}s remaining.`
       );
+    } else {
+      if (workoutHoldEngaged) {
+        // Was holding, now broken -> continuous shock!
+        if (!workoutIsPunishing) {
+          workoutIsPunishing = true;
+          startPunishLoop(config.intensity, 1600);
+        }
+        setUnifiedGameState(
+          "punish",
+          "🚨 NOT HOLDING! FEEDBACK ACTIVE!",
+          `RE-ENGAGE SENSOR IMMEDIATELY! (${Math.max(0, stage.holdSec - workoutHoldSecDone).toFixed(1)}s left)`
+        );
+      } else {
+        // Anti-stall countdown:
+        workoutStallTimer += 0.1;
+        if (workoutStallTimer >= 4.0) {
+          if (!workoutIsPunishing) {
+            workoutIsPunishing = true;
+            startPunishLoop(config.intensity, 1600);
+          }
+          setUnifiedGameState(
+            "punish",
+            "🚨 STALLING DETECTED! FEEDBACK ACTIVE!",
+            `ENGAGE SENSOR NOW TO BEGIN ${stage.holdSec}s HOLD!`
+          );
+        } else {
+          const remGrace = Math.max(0, 4.0 - workoutStallTimer);
+          setUnifiedGameState(
+            "stalling",
+            `START HOLD (${remGrace.toFixed(1)}s)`,
+            "Engage target position before anti-stall feedback activates!"
+          );
+        }
+      }
     }
   } else if (stage.type === "hold_sets") {
     if (!workoutWaitingBreakRelease) {
       if (isPhysicalDown) {
+        workoutHoldEngaged = true;
+        workoutStallTimer = 0;
+        if (workoutIsPunishing) {
+          workoutIsPunishing = false;
+          stopPunishLoop();
+        }
         workoutHoldSecDone += 0.1;
         const remHold = Math.max(0, stage.holdSec - workoutHoldSecDone);
         checkHoldCountdownAudio(remHold);
@@ -7925,6 +8077,7 @@ function tickWorkoutArena() {
             workoutHoldSecDone = 0;
             workoutWaitingBreakRelease = true;
             workoutBreakElapsed = 0;
+            workoutHoldEngaged = false;
             resetCountdownAudio();
             setUnifiedGameState(
               "can-release",
@@ -7939,8 +8092,40 @@ function tickWorkoutArena() {
           setUnifiedGameState(
             "holding",
             `SET ${workoutSubSetIdx} OF ${stage.sets} — HOLDING DEEP!`,
-            `Keep holding! ${Math.max(0, stage.holdSec - workoutHoldSecDone).toFixed(1)}s left.`
+            `Keep holding! ${remHold.toFixed(1)}s left.`
           );
+        }
+      } else {
+        if (workoutHoldEngaged) {
+          if (!workoutIsPunishing) {
+            workoutIsPunishing = true;
+            startPunishLoop(config.intensity, 1600);
+          }
+          setUnifiedGameState(
+            "punish",
+            `🚨 SET ${workoutSubSetIdx} BROKEN! FEEDBACK ACTIVE!`,
+            `GET BACK TO TARGET POSITION TO FINISH SET ${workoutSubSetIdx}!`
+          );
+        } else {
+          workoutStallTimer += 0.1;
+          if (workoutStallTimer >= 3.5) {
+            if (!workoutIsPunishing) {
+              workoutIsPunishing = true;
+              startPunishLoop(config.intensity, 1600);
+            }
+            setUnifiedGameState(
+              "punish",
+              `🚨 STALLING! START SET ${workoutSubSetIdx}!`,
+              "Engage target position immediately to stop feedback!"
+            );
+          } else {
+            const remGrace = Math.max(0, 3.5 - workoutStallTimer);
+            setUnifiedGameState(
+              "stalling",
+              `START SET ${workoutSubSetIdx} (${remGrace.toFixed(1)}s)`,
+              `Engage target position to start ${stage.holdSec}s hold!`
+            );
+          }
         }
       }
     } else {
@@ -7949,9 +8134,12 @@ function tickWorkoutArena() {
       checkRestCountdownAudio(remBreak);
       if (workoutBreakElapsed >= stage.breakSec) {
         workoutWaitingBreakRelease = false;
+        workoutHoldEngaged = false;
+        workoutStallTimer = 0;
         resetCountdownAudio();
         playHoldLockCue();
         if (isPhysicalDown) {
+          workoutHoldEngaged = true;
           setUnifiedGameState(
             "holding",
             `SET ${workoutSubSetIdx} OF ${stage.sets} — LOCKED IN!`,
@@ -7959,7 +8147,7 @@ function tickWorkoutArena() {
           );
         } else {
           setUnifiedGameState(
-            "pause",
+            "stalling",
             `SET ${workoutSubSetIdx} OF ${stage.sets} ARMED!`,
             `Engage sensor to begin Set ${workoutSubSetIdx} (${stage.holdSec}s hold).`
           );
@@ -8048,6 +8236,10 @@ function completeWorkout() {
 function stopWorkoutGame() {
   workoutActive = false;
   workoutInPostStageRest = false;
+  workoutHoldEngaged = false;
+  workoutStallTimer = 0;
+  workoutBpmStallSec = 0;
+  workoutIsPunishing = false;
   workoutBpmTimestamps = [];
   workoutLiveBpm = 0;
   if (workoutTicker) {
@@ -8322,11 +8514,13 @@ function initWorkoutSystem() {
   if (forfeitBtn) {
     forfeitBtn.addEventListener("pointerdown", e => e.stopPropagation());
     forfeitBtn.addEventListener("click", () => {
-      if (confirm("Abandon your daily workout? Your progress for this session will not be saved.")) {
+      if (confirm("Abandon your daily workout? Forfeiting triggers punishment and progress will not be saved.")) {
+        sendPunishment();
+        playTone(200, 500, "sawtooth");
         stopWorkoutGame();
         switchScreen("hub");
         setHubView("workout");
-        renderWorkoutDashboard();
+        renderWorkoutDashboard("⚠️ Daily workout forfeited! Forfeit punishment delivered.");
       }
     });
   }
