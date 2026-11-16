@@ -80,39 +80,6 @@ body[data-game-state="can-release"] { background: #2e1065 !important; }
   box-shadow: 0 0 60px rgba(0, 0, 0, 0.7), 0 0 35px rgba(40, 207, 197, 0.12);
 }
 
-/* 180° Inverted (Upside Down / On The Head) Mode */
-html.inverted-app,
-body.inverted-app {
-  transform: rotate(180deg);
-  transform-origin: 50vw 50vh;
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  height: 100dvh;
-  overflow: hidden;
-}
-
-body.inverted-app #app {
-  height: 100vh;
-  height: 100dvh;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-#btn-invert-app {
-  transition: transform 0.25s ease, background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
-}
-
-#btn-invert-app.active {
-  background: rgba(16, 185, 129, 0.25);
-  border-color: #10b981;
-  color: #10b981;
-  box-shadow: 0 0 12px rgba(16, 185, 129, 0.45);
-  transform: rotate(180deg);
-}
-
 /* App Bar */
 .app-bar {
   display: flex;
@@ -1522,10 +1489,6 @@ select:focus-visible {
   object-fit: cover;
   display: block;
   z-index: 1;
-}
-
-.mp-video-layer.rotated-180 {
-  transform: rotate(180deg);
 }
 
 .mp-canvas-layer,

@@ -38,10 +38,17 @@ const config = {
   mpMouthLock: localStorage.getItem("os_mp_mouth_lock") === "off" ? "off" : "on",
   mpMouthSens: Math.max(10, Math.min(65, parseInt(localStorage.getItem("os_mp_mouth_sens") || "24", 10) || 24)),
   bpmCueMode: ["down", "down_up", "off"].includes(savedBpmCueMode) ? savedBpmCueMode : "down",
-  wsUrl: localStorage.getItem("os_ws_url") || "ws://localhost:8080",
-  invertedApp: localStorage.getItem("os_inverted_app") === "true",
-  cameraOrientation: localStorage.getItem("os_camera_orientation") || "auto"
+  wsUrl: localStorage.getItem("os_ws_url") || "ws://localhost:8080"
 };
+
+try {
+  localStorage.removeItem("os_inverted_app");
+  localStorage.removeItem("os_camera_orientation");
+  if (typeof document !== "undefined") {
+    document.body.classList.remove("inverted-app");
+    document.documentElement.classList.remove("inverted-app");
+  }
+} catch (_) {}
 
 let isPhysicalDown = false;
 let isRepStrokeArmed = true;
@@ -4667,39 +4674,6 @@ function stopMediaPipeDepth() {
   }
 }
 
-let mpRotCanvas = null;
-
-function shouldRotateCameraFeed() {
-  if (config.cameraOrientation === "flipped") return true;
-  if (config.cameraOrientation === "upright") return false;
-  return Boolean(config.invertedApp);
-}
-
-function updateCameraOrientationUI() {
-  const shouldRot = shouldRotateCameraFeed();
-  const video = document.getElementById("mp-video");
-  if (video) {
-    video.classList.toggle("rotated-180", shouldRot);
-  }
-}
-
-function applyInvertedOrientation(isInverted) {
-  config.invertedApp = Boolean(isInverted);
-  document.body.classList.toggle("inverted-app", config.invertedApp);
-  document.documentElement.classList.toggle("inverted-app", config.invertedApp);
-
-  const btn = document.getElementById("btn-invert-app");
-  if (btn) {
-    btn.classList.toggle("active", config.invertedApp);
-    btn.setAttribute("aria-pressed", String(config.invertedApp));
-  }
-  const radio = document.querySelector(`input[name="screen-orientation"][value="${config.invertedApp ? 'inverted' : 'normal'}"]`);
-  if (radio) radio.checked = true;
-
-  updateCameraOrientationUI();
-  localStorage.setItem("os_inverted_app", String(config.invertedApp));
-}
-
 let lastMediaPipeResultTime = 0;
 
 async function processMediaPipeFrame() {
@@ -4718,34 +4692,12 @@ async function processMediaPipeFrame() {
       }
     }
 
-    const shouldRotate = shouldRotateCameraFeed();
-    let frameSource = video;
-
-    if (shouldRotate) {
-      if (!mpRotCanvas) {
-        mpRotCanvas = document.createElement("canvas");
-      }
-      const cW = 240;
-      const cH = Math.round(240 / vAspect);
-      if (mpRotCanvas.width !== cW || mpRotCanvas.height !== cH) {
-        mpRotCanvas.width = cW;
-        mpRotCanvas.height = cH;
-      }
-      const rCtx = mpRotCanvas.getContext("2d");
-      rCtx.save();
-      rCtx.translate(cW, cH);
-      rCtx.rotate(Math.PI);
-      rCtx.drawImage(video, 0, 0, cW, cH);
-      rCtx.restore();
-      frameSource = mpRotCanvas;
-    }
-
     // If MediaPipe is still initializing or between frames, ensure video displays on canvas
     if (!lastMediaPipeResultTime || (Date.now() - lastMediaPipeResultTime > 600)) {
       if (canvas) {
         const ctx = canvas.getContext("2d");
         try {
-          ctx.drawImage(frameSource, 0, 0, canvas.width, canvas.height);
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         } catch (_) {}
       }
     }
@@ -4753,7 +4705,7 @@ async function processMediaPipeFrame() {
     if (faceMeshInstance && !isMediaPipeSending) {
       isMediaPipeSending = true;
       try {
-        await faceMeshInstance.send({ image: frameSource });
+        await faceMeshInstance.send({ image: video });
       } catch (e) {
         console.warn("FaceMesh send error:", e);
       } finally {
@@ -4777,8 +4729,7 @@ function onMediaPipeResults(results) {
   ctx.clearRect(0, 0, w, h);
 
   const video = document.getElementById("mp-video");
-  const fallbackSource = shouldRotateCameraFeed() ? mpRotCanvas : video;
-  const frameSource = results.image || (fallbackSource && (fallbackSource.readyState >= 2 || fallbackSource.videoWidth > 0 || fallbackSource.width > 0) ? fallbackSource : null);
+  const frameSource = results.image || (video && (video.readyState >= 2 || video.videoWidth > 0) ? video : null);
 
   let rawFrameImgData = null;
   if (frameSource) {
@@ -5499,40 +5450,11 @@ function initSettingsPage() {
       r.checked = (r.value === config.actionType);
     });
 
-    document.querySelectorAll("input[name='screen-orientation']").forEach(r => {
-      r.checked = (r.value === (config.invertedApp ? "inverted" : "normal"));
-    });
-    document.querySelectorAll("input[name='camera-orientation']").forEach(r => {
-      r.checked = (r.value === config.cameraOrientation);
-    });
-
     onInputSourceChange(config.inputSource);
     updateOutputFields(document.getElementById("cfg-output-mode").value);
     syncDefaultIntensityToSetups(config.intensity);
-    applyInvertedOrientation(config.invertedApp);
   };
   populateSettings();
-
-  const btnInvertApp = document.getElementById("btn-invert-app");
-  if (btnInvertApp) {
-    btnInvertApp.addEventListener("click", () => {
-      applyInvertedOrientation(!config.invertedApp);
-    });
-  }
-
-  document.querySelectorAll("input[name='screen-orientation']").forEach(r => {
-    r.addEventListener("change", (e) => {
-      applyInvertedOrientation(e.target.value === "inverted");
-    });
-  });
-
-  document.querySelectorAll("input[name='camera-orientation']").forEach(r => {
-    r.addEventListener("change", (e) => {
-      config.cameraOrientation = e.target.value;
-      localStorage.setItem("os_camera_orientation", config.cameraOrientation);
-      updateCameraOrientationUI();
-    });
-  });
 
   sessionsTab.addEventListener("click", () => {
     setHubView("sessions");
@@ -5653,17 +5575,6 @@ function initSettingsPage() {
     if (checkedMouthLock) {
       config.mpMouthLock = checkedMouthLock.value;
       localStorage.setItem("os_mp_mouth_lock", config.mpMouthLock);
-    }
-
-    const checkedScreenOrient = document.querySelector("input[name='screen-orientation']:checked");
-    if (checkedScreenOrient) {
-      applyInvertedOrientation(checkedScreenOrient.value === "inverted");
-    }
-    const checkedCamOrient = document.querySelector("input[name='camera-orientation']:checked");
-    if (checkedCamOrient) {
-      config.cameraOrientation = checkedCamOrient.value;
-      localStorage.setItem("os_camera_orientation", config.cameraOrientation);
-      updateCameraOrientationUI();
     }
 
     const mouthSensInput = document.getElementById("cfg-mp-mouth-sens");

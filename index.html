@@ -18,14 +18,6 @@
       </button>
       <div id="app-title" class="app-title">SESSIONS</div>
       <div class="app-bar-right">
-        <button id="btn-invert-app" class="icon-btn" aria-label="Rotate 180° (Upside Down)" title="Rotate 180° (On the head)">
-          <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2.2" fill="none">
-            <path d="M3 12a9 9 0 0 1 15-6.7L21 8"/>
-            <path d="M21 3v5h-5"/>
-            <path d="M21 12a9 9 0 0 1-15 6.7L3 16"/>
-            <path d="M3 21v-5h5"/>
-          </svg>
-        </button>
         <span id="sensor-indicator" class="status-pill idle">IDLE</span>
       </div>
     </header>
@@ -520,27 +512,6 @@
             </div>
             <button id="btn-test-reward-webhook" class="btn btn-secondary" type="button">Test reward</button>
             <p id="reward-test-feedback" class="feedback-text" role="status"></p>
-          </div>
-
-          <div class="settings-group display-settings">
-            <h3 class="settings-section-title">Display &amp; Orientation</h3>
-            <div class="form-group">
-              <label>Screen Orientation</label>
-              <div class="segmented-control" id="cfg-invert-orientation-ctrl">
-                <label><input type="radio" name="screen-orientation" value="normal" checked> <span>Standard</span></label>
-                <label><input type="radio" name="screen-orientation" value="inverted"> <span>Upside Down (180°)</span></label>
-              </div>
-              <span class="sub-hint" style="display:block; margin-top:4px;">Rotates the entire app 180° when resting your phone upside down ("on the head") on a desk, stand, or charger. Also quick-toggled via the 🔄 button in the top bar.</span>
-            </div>
-            <div class="form-group" style="margin-top: 10px;">
-              <label>AI Camera Feed Orientation</label>
-              <div class="segmented-control" id="cfg-camera-orientation-ctrl">
-                <label><input type="radio" name="camera-orientation" value="auto" checked> <span>Auto (Match Screen)</span></label>
-                <label><input type="radio" name="camera-orientation" value="upright"> <span>Always Normal</span></label>
-                <label><input type="radio" name="camera-orientation" value="flipped"> <span>Always Flipped 180°</span></label>
-              </div>
-              <span class="sub-hint" style="display:block; margin-top:4px;">Rotates the camera frame sent to MediaPipe FaceMesh so face detection remains accurate when your phone is placed upside down.</span>
-            </div>
           </div>
 
           <h3 class="settings-section-title input-section-title">Input</h3>
