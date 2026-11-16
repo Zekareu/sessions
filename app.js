@@ -49,6 +49,40 @@ let lastShockSentTime = 0;
 let punishLoopInterval = null;
 let currentScreen = "hub";
 
+// ==========================================
+// SCREEN WAKE LOCK API (KEEP SCREEN AWAKE DURING SESSIONS)
+// ==========================================
+let wakeLockSentinel = null;
+
+async function requestScreenWakeLock() {
+  if (typeof navigator !== "undefined" && "wakeLock" in navigator && !wakeLockSentinel) {
+    try {
+      wakeLockSentinel = await navigator.wakeLock.request("screen");
+      wakeLockSentinel.addEventListener("release", () => {
+        wakeLockSentinel = null;
+      });
+    } catch (err) {
+      // Graceful fallback (e.g. low battery mode, background tab)
+      console.warn("Screen WakeLock notice:", err);
+    }
+  }
+}
+
+function releaseScreenWakeLock() {
+  if (wakeLockSentinel) {
+    wakeLockSentinel.release().catch(() => {});
+    wakeLockSentinel = null;
+  }
+}
+
+if (typeof document !== "undefined") {
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible" && currentScreen && currentScreen.startsWith("game-")) {
+      requestScreenWakeLock();
+    }
+  });
+}
+
 // Web Audio API Synthesizer
 let audioCtx = null;
 function getAudio() {
@@ -783,7 +817,12 @@ function switchScreen(targetScreen) {
     return;
   }
   currentScreen = targetScreen;
-  if (targetScreen.startsWith("game-")) rewardSentForSession = false;
+  if (targetScreen.startsWith("game-")) {
+    rewardSentForSession = false;
+    requestScreenWakeLock();
+  } else {
+    releaseScreenWakeLock();
+  }
   if (document.activeElement && typeof document.activeElement.blur === "function") {
     document.activeElement.blur();
   }
@@ -906,6 +945,7 @@ function stopAllGames() {
   if (typeof stopPrisonGame === "function") stopPrisonGame();
   if (typeof stopWorkoutGame === "function") stopWorkoutGame();
   stopPunishLoop();
+  releaseScreenWakeLock();
   document.body.removeAttribute("data-game-state");
   updateStatusIndicator(false);
 }
@@ -8165,6 +8205,49 @@ function tickWorkoutArena() {
   updateWorkoutArenaReadout();
 }
 
+function getWorkoutRemainingSec() {
+  if (!workoutRoutine || workoutStageIdx >= workoutRoutine.length) return 0;
+
+  let rem = 0;
+
+  if (workoutInPostStageRest) {
+    rem += workoutPostStageRestRemaining;
+  } else {
+    const current = workoutRoutine[workoutStageIdx];
+    if (current) {
+      if (current.type === "bpm") {
+        rem += Math.max(0, workoutStageSecRemaining);
+      } else if (current.type === "hold") {
+        rem += Math.max(0, current.holdSec - workoutHoldSecDone);
+      } else if (current.type === "hold_sets") {
+        const curSetRem = Math.max(0, current.holdSec - workoutHoldSecDone);
+        const remSetsAfterThis = Math.max(0, current.sets - workoutSubSetIdx);
+        rem += curSetRem + (remSetsAfterThis * current.holdSec);
+
+        if (workoutWaitingBreakRelease) {
+          const curBreakRem = Math.max(0, current.breakSec - workoutBreakElapsed);
+          rem += curBreakRem + (Math.max(0, remSetsAfterThis - 1) * current.breakSec);
+        } else {
+          rem += remSetsAfterThis * current.breakSec;
+        }
+      }
+      rem += (current.restAfterSec || 0);
+    }
+  }
+
+  for (let i = workoutStageIdx + 1; i < workoutRoutine.length; i++) {
+    const s = workoutRoutine[i];
+    if (s.type === "hold_sets") {
+      rem += (s.sets * s.holdSec) + ((s.sets - 1) * s.breakSec);
+    } else {
+      rem += (s.durationSec || s.holdSec || 0);
+    }
+    rem += (s.restAfterSec || 0);
+  }
+
+  return Math.max(0, Math.round(rem * 10) / 10);
+}
+
 function updateWorkoutArenaReadout() {
   if (!workoutActive || !workoutRoutine) return;
   const stage = workoutRoutine[workoutStageIdx];
@@ -8176,13 +8259,14 @@ function updateWorkoutArenaReadout() {
   const primaryUnit = document.getElementById("workout-primary-unit");
   const fillEl = document.getElementById("workout-progress-fill");
 
-  const remTotal = Math.max(0, workoutTotalDurationSec - workoutTotalElapsedSec);
+  const remTotal = getWorkoutRemainingSec();
   const m = Math.floor(remTotal / 60);
   const s = Math.floor(remTotal % 60);
   if (totalTimerEl) totalTimerEl.textContent = `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 
   if (fillEl) {
-    const pct = workoutTotalDurationSec > 0 ? (workoutTotalElapsedSec / workoutTotalDurationSec) * 100 : 0;
+    const completedWork = Math.max(0, workoutTotalDurationSec - remTotal);
+    const pct = workoutTotalDurationSec > 0 ? (completedWork / workoutTotalDurationSec) * 100 : 0;
     fillEl.style.width = `${Math.min(100, Math.max(0, pct))}%`;
   }
 
