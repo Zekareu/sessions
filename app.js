@@ -9,6 +9,16 @@
 const savedOutputMode = localStorage.getItem("os_output_mode");
 const savedBpmCueMode = localStorage.getItem("os_bpm_cue_mode");
 const savedActionType = localStorage.getItem("os_action_type");
+function parseSafeFloat(val, fallback) {
+  const n = parseFloat(val);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function parseSafeInt(val, fallback, radix = 10) {
+  const n = parseInt(val, radix);
+  return Number.isFinite(n) ? n : fallback;
+}
+
 const config = {
   token: localStorage.getItem("os_token") || "",
   shockerId: localStorage.getItem("os_shocker_id") || "",
@@ -20,23 +30,23 @@ const config = {
   piUsername: localStorage.getItem("os_pishock_username") || "",
   piApiKey: localStorage.getItem("os_pishock_key") || "",
   piShareCode: localStorage.getItem("os_pishock_code") || "",
-  intensity: Math.max(1, Math.min(99, parseInt(localStorage.getItem("os_intensity") || "20", 10) || 20)),
-  duration: Math.max(100, Math.min(10000, parseInt(localStorage.getItem("os_duration") || "1000", 10) || 1000)),
+  intensity: Math.max(1, Math.min(99, parseSafeInt(localStorage.getItem("os_intensity"), 20))),
+  duration: Math.max(100, Math.min(10000, parseSafeInt(localStorage.getItem("os_duration"), 1000))),
   actionType: ["Shock", "Vibrate", "Sound"].includes(savedActionType) ? savedActionType : "Shock",
   inputSource: localStorage.getItem("os_input_source") || "touch",
-  camThreshold: parseInt(localStorage.getItem("os_cam_threshold") || "14", 10) || 14,
-  luxThreshold: parseInt(localStorage.getItem("os_lux_threshold") || "15", 10) || 15,
+  camThreshold: parseSafeInt(localStorage.getItem("os_cam_threshold"), 14),
+  luxThreshold: parseSafeInt(localStorage.getItem("os_lux_threshold"), 15),
   mpMode: localStorage.getItem("os_mp_mode") || "side",
   mpSideDir: localStorage.getItem("os_mp_side_dir") || "ltr",
   mpTopDir: localStorage.getItem("os_mp_top_dir") || "ttb",
-  mpTripwireX: parseFloat(localStorage.getItem("os_mp_tripwire_x") || "0.65"),
-  mpTripwireY: parseFloat(localStorage.getItem("os_mp_tripwire_y") || "0.70"),
-  mpRetractX: parseFloat(localStorage.getItem("os_mp_retract_x") || "0.35"),
-  mpRetractY: parseFloat(localStorage.getItem("os_mp_retract_y") || "0.40"),
-  mpHiltThreshold: parseFloat(localStorage.getItem("os_mp_hilt_threshold") || "5.0"),
-  mpRetractDist: parseFloat(localStorage.getItem("os_mp_retract_dist") || "14.0"),
+  mpTripwireX: parseSafeFloat(localStorage.getItem("os_mp_tripwire_x"), 0.65),
+  mpTripwireY: parseSafeFloat(localStorage.getItem("os_mp_tripwire_y"), 0.70),
+  mpRetractX: parseSafeFloat(localStorage.getItem("os_mp_retract_x"), 0.35),
+  mpRetractY: parseSafeFloat(localStorage.getItem("os_mp_retract_y"), 0.40),
+  mpHiltThreshold: parseSafeFloat(localStorage.getItem("os_mp_hilt_threshold"), 5.0),
+  mpRetractDist: parseSafeFloat(localStorage.getItem("os_mp_retract_dist"), 14.0),
   mpMouthLock: localStorage.getItem("os_mp_mouth_lock") === "off" ? "off" : "on",
-  mpMouthSens: Math.max(10, Math.min(65, parseInt(localStorage.getItem("os_mp_mouth_sens") || "24", 10) || 24)),
+  mpMouthSens: Math.max(10, Math.min(65, parseSafeInt(localStorage.getItem("os_mp_mouth_sens"), 24))),
   bpmCueMode: ["down", "down_up", "off"].includes(savedBpmCueMode) ? savedBpmCueMode : "down",
   cameraFacing: localStorage.getItem("os_camera_facing") === "environment" ? "environment" : "user",
   wsUrl: localStorage.getItem("os_ws_url") || "ws://localhost:8080"
@@ -95,8 +105,28 @@ if (typeof document !== "undefined") {
 let audioCtx = null;
 function getAudio() {
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  if (audioCtx.state === "suspended") audioCtx.resume();
+  if (audioCtx.state === "suspended") {
+    audioCtx.resume().catch(() => {});
+  }
   return audioCtx;
+}
+
+// User-gesture audio unlock for mobile Safari & Chrome
+if (typeof window !== "undefined") {
+  const unlockAudio = () => {
+    try {
+      const ctx = getAudio();
+      if (ctx && ctx.state === "suspended") {
+        ctx.resume().catch(() => {});
+      }
+    } catch (_) {}
+    window.removeEventListener("pointerdown", unlockAudio);
+    window.removeEventListener("touchstart", unlockAudio);
+    window.removeEventListener("keydown", unlockAudio);
+  };
+  window.addEventListener("pointerdown", unlockAudio, { passive: true });
+  window.addEventListener("touchstart", unlockAudio, { passive: true });
+  window.addEventListener("keydown", unlockAudio, { passive: true });
 }
 
 function playTone(freq, durationMs, type = "sine") {
@@ -4631,7 +4661,31 @@ function initMediaPipeDepth() {
   }
 }
 
+let mpDOMElements = null;
+function getMediaPipeDOMElements() {
+  if (!mpDOMElements) {
+    const video = document.getElementById("mp-video");
+    const canvas = document.getElementById("mp-canvas");
+    mpDOMElements = {
+      video,
+      canvas,
+      ctx: canvas ? canvas.getContext("2d", { willReadFrequently: true }) : null,
+      container: document.querySelector(".mp-preview-container"),
+      badge: document.getElementById("mp-indicator-badge"),
+      distVal: document.getElementById("mp-distance-val"),
+      lockStatus: document.getElementById("mp-lock-status"),
+      distFill: document.getElementById("mp-distance-fill"),
+      mouthVal: document.getElementById("mp-mouth-val"),
+      mouthStatus: document.getElementById("mp-mouth-status")
+    };
+  }
+  return mpDOMElements;
+}
+
 async function startMediaPipeDepth() {
+  if (isMediaPipeActive || isMediaPipeLoading) return;
+  isMediaPipeLoading = true;
+
   const toggleBtn = document.getElementById("btn-mp-toggle");
   const statusEl = document.getElementById("mp-support-alert");
 
@@ -4641,7 +4695,8 @@ async function startMediaPipeDepth() {
   }
 
   try {
-    const video = document.getElementById("mp-video");
+    const els = getMediaPipeDOMElements();
+    const video = els.video;
     if (!video) throw new Error("Video preview element missing");
 
     // 1. Request camera immediately so permission prompt appears and preview begins without waiting for FaceMesh download
@@ -4707,12 +4762,18 @@ async function startMediaPipeDepth() {
       statusEl.className = "support-status unsupported";
       statusEl.innerHTML = `⚠️ MediaPipe Error: ${err.message}`;
     }
+  } finally {
+    isMediaPipeLoading = false;
   }
 }
 
 function stopMediaPipeDepth() {
+  isMediaPipeActive = false;
+  isMediaPipeLoading = false;
+  isMediaPipeSending = false;
   mpFrontCloseLatch = false;
   lastWasAtHilt = false;
+
   if (mediaPipeRaf) {
     cancelAnimationFrame(mediaPipeRaf);
     mediaPipeRaf = null;
@@ -4721,17 +4782,15 @@ function stopMediaPipeDepth() {
     mediaPipeStream.getTracks().forEach(t => t.stop());
     mediaPipeStream = null;
   }
-  const video = document.getElementById("mp-video");
-  if (video) {
-    video.srcObject = null;
+
+  const els = getMediaPipeDOMElements();
+  if (els.video) {
+    els.video.srcObject = null;
   }
-  const canvas = document.getElementById("mp-canvas");
-  if (canvas) {
-    const ctx = canvas.getContext("2d");
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if (els.canvas) {
+    const ctx = els.ctx || els.canvas.getContext("2d", { willReadFrequently: true });
+    if (ctx) ctx.clearRect(0, 0, els.canvas.width, els.canvas.height);
   }
-  isMediaPipeActive = false;
-  isMediaPipeSending = false;
 
   const toggleBtn = document.getElementById("btn-mp-toggle");
   if (toggleBtn) {
@@ -4746,8 +4805,9 @@ let lastMediaPipeResultTime = 0;
 async function processMediaPipeFrame() {
   if (!isMediaPipeActive) return;
 
-  const video = document.getElementById("mp-video");
-  const canvas = document.getElementById("mp-canvas");
+  const els = getMediaPipeDOMElements();
+  const video = els.video;
+  const canvas = els.canvas;
 
   if (video && (video.readyState >= 2 || video.videoWidth > 0)) {
     const vAspect = (video.videoWidth && video.videoHeight) ? (video.videoWidth / video.videoHeight) : (4 / 3);
@@ -4762,7 +4822,7 @@ async function processMediaPipeFrame() {
     // If MediaPipe is still initializing or between frames, ensure video displays on canvas
     if (!lastMediaPipeResultTime || (Date.now() - lastMediaPipeResultTime > 600)) {
       if (canvas) {
-        const ctx = canvas.getContext("2d");
+        const ctx = els.ctx || canvas.getContext("2d", { willReadFrequently: true });
         try {
           ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         } catch (_) {}
@@ -4781,21 +4841,25 @@ async function processMediaPipeFrame() {
     }
   }
 
+  // Prevent ghost frame if stopped while awaiting inference
+  if (!isMediaPipeActive) return;
+
   mediaPipeRaf = requestAnimationFrame(processMediaPipeFrame);
 }
 
 function onMediaPipeResults(results) {
   lastMediaPipeResultTime = Date.now();
-  const canvas = document.getElementById("mp-canvas");
+  const els = getMediaPipeDOMElements();
+  const canvas = els.canvas;
   if (!canvas) return;
-  const ctx = canvas.getContext("2d");
+  const ctx = els.ctx || canvas.getContext("2d", { willReadFrequently: true });
   const w = canvas.width;
   const h = canvas.height;
 
   ctx.save();
   ctx.clearRect(0, 0, w, h);
 
-  const video = document.getElementById("mp-video");
+  const video = els.video;
   const frameSource = results.image || (video && (video.readyState >= 2 || video.videoWidth > 0) ? video : null);
 
   let rawFrameImgData = null;
@@ -5088,12 +5152,12 @@ function onMediaPipeResults(results) {
 
   ctx.restore();
 
-  // Update UI Elements
-  const container = document.querySelector(".mp-preview-container");
-  const badge = document.getElementById("mp-indicator-badge");
-  const distVal = document.getElementById("mp-distance-val");
-  const lockStatus = document.getElementById("mp-lock-status");
-  const distFill = document.getElementById("mp-distance-fill");
+  // Update UI Elements (using cached DOM elements)
+  const container = els.container;
+  const badge = els.badge;
+  const distVal = els.distVal;
+  const lockStatus = els.lockStatus;
+  const distFill = els.distFill;
 
   if (container) {
     container.classList.toggle("at-hilt", isAtHilt);
@@ -5135,8 +5199,8 @@ function onMediaPipeResults(results) {
   }
 
   // Update Mouth Lock UI & enforce mouth-lock rules
-  const mouthValEl = document.getElementById("mp-mouth-val");
-  const mouthStatusEl = document.getElementById("mp-mouth-status");
+  const mouthValEl = els.mouthVal;
+  const mouthStatusEl = els.mouthStatus;
   const hasFace = metricDisplay !== "NO FACE";
   const mouthLockActive = config.mpMouthLock === "on";
 
@@ -7697,6 +7761,15 @@ function recordTrainingSession(type, durationMin = 1, label = "") {
     durationMin: durationMin || 1,
     label: label || `${type} session`,
     timestamp: Date.now()
+  });
+
+  // Prune history dates older than 90 days to prevent unbounded localStorage growth
+  const cutoffTime = Date.now() - (90 * 24 * 60 * 60 * 1000);
+  Object.keys(stats.history).forEach(dateKey => {
+    const entryDate = new Date(dateKey).getTime();
+    if (entryDate && entryDate < cutoffTime) {
+      delete stats.history[dateKey];
+    }
   });
 
   saveDailyTrainingStats(stats);
