@@ -48,6 +48,8 @@ const config = {
   mpMouthLock: localStorage.getItem("os_mp_mouth_lock") === "off" ? "off" : "on",
   mpMouthSens: Math.max(10, Math.min(65, parseSafeInt(localStorage.getItem("os_mp_mouth_sens"), 24))),
   mpEyeContact: localStorage.getItem("os_mp_eye_contact") === "on" ? "on" : "off",
+  aspirationalOverlay: localStorage.getItem("os_aspirational_overlay") || "both",
+  aspirationalOpacity: parseSafeInt(localStorage.getItem("os_aspirational_opacity"), 30),
   bpmCueMode: ["down", "down_up", "off"].includes(savedBpmCueMode) ? savedBpmCueMode : "down",
   cameraFacing: localStorage.getItem("os_camera_facing") === "environment" ? "environment" : "user",
   wsUrl: localStorage.getItem("os_ws_url") || "ws://localhost:8080"
@@ -872,6 +874,7 @@ function switchScreen(targetScreen) {
   const title = document.getElementById("app-title");
 
   stopAllGames();
+  if (typeof updateAspirationalOverlayUI === "function") updateAspirationalOverlayUI();
 
   if (targetScreen === "hub") {
     backBtn.classList.add("hidden");
@@ -5487,9 +5490,13 @@ function onMediaPipeResults(results) {
         try { navigator.vibrate(28); } catch (_) {}
       }
       playTone(587, 30, "sine"); // Soft positive lock confirmation tone (D5)
+      if (typeof nextAspirationalLoop === "function") nextAspirationalLoop();
     }
 
     if (isAtHilt) {
+      if (typeof nextAspirationalLoop === "function" && (Date.now() - lastAspirationalSwitchTime > 20000)) {
+        nextAspirationalLoop();
+      }
       mpSessionHadMouthContact = true;
       handlePhysicalInputState(true);
     } else if (isAtRetract) {
@@ -5841,6 +5848,15 @@ function initSettingsPage() {
     document.querySelectorAll("input[name='mp-eye-contact']").forEach(r => {
       r.checked = (r.value === config.mpEyeContact);
     });
+    document.querySelectorAll("input[name='cfg-aspirational-overlay']").forEach(r => {
+      r.checked = (r.value === config.aspirationalOverlay);
+    });
+    const aspirationalOpacitySlider = document.getElementById("cfg-aspirational-opacity");
+    if (aspirationalOpacitySlider) {
+      aspirationalOpacitySlider.value = config.aspirationalOpacity;
+      const valSpan = document.getElementById("cfg-aspirational-opacity-val");
+      if (valSpan) valSpan.textContent = `${config.aspirationalOpacity}%`;
+    }
     const mouthSensInput = document.getElementById("cfg-mp-mouth-sens");
     if (mouthSensInput) {
       mouthSensInput.value = config.mpMouthSens;
@@ -5995,6 +6011,18 @@ function initSettingsPage() {
       config.mpEyeContact = checkedEyeContact.value;
       localStorage.setItem("os_mp_eye_contact", config.mpEyeContact);
     }
+
+    const checkedAspirationalOverlay = document.querySelector("input[name='cfg-aspirational-overlay']:checked");
+    if (checkedAspirationalOverlay) {
+      config.aspirationalOverlay = checkedAspirationalOverlay.value;
+      localStorage.setItem("os_aspirational_overlay", config.aspirationalOverlay);
+    }
+    const aspirationalOpacityInput = document.getElementById("cfg-aspirational-opacity");
+    if (aspirationalOpacityInput) {
+      config.aspirationalOpacity = parseInt(aspirationalOpacityInput.value, 10) || 30;
+      localStorage.setItem("os_aspirational_opacity", config.aspirationalOpacity);
+    }
+    if (typeof updateAspirationalOverlayUI === "function") updateAspirationalOverlayUI();
 
     const mouthSensInput = document.getElementById("cfg-mp-mouth-sens");
     if (mouthSensInput) {
@@ -8960,6 +8988,188 @@ function initWorkoutSystem() {
   renderWorkoutDashboard();
 }
 
+// --- Aspirational Loop Overlay System (censored.booru.org) ---
+const censoredBooruPool = [
+  "https://img.booru.org/censored//images/35/cd8dca27c1c15751f2a83f60fb17727ff6a72f55.gif",
+  "https://img.booru.org/censored//images/35/9e33c243ae7505f2a9ebe775031123ad59c2f5f4.gif",
+  "https://img.booru.org/censored//images/35/055a51770f6a2105c9b85508c0714205aa914e8a.gif",
+  "https://img.booru.org/censored//images/35/44ca9fa6944945a6f234239595932a499def1568.gif",
+  "https://img.booru.org/censored//images/34/69d5facdec9da265121c9daa6b72544ecd2dc8c0.gif",
+  "https://img.booru.org/censored//images/35/6ecd164e7eac14b45b2ab19374637ca915c8e9ef.gif",
+  "https://img.booru.org/censored//images/35/27bb5a7378ce5470acd8cac5fe53f5645c8b9791.gif",
+  "https://img.booru.org/censored//images/35/0223323d7242f3fa9310d37729b53f99e9d4428a.gif",
+  "https://img.booru.org/censored//images/35/543a190ca5f7be72f674b1404d825fbb57e1aabd.gif",
+  "https://img.booru.org/censored//images/35/c473d01d3f011730b415f268c1cffd080cb3be5b.gif",
+  "https://img.booru.org/censored//images/35/9bbbdf17b7d7a6752cd4b83613ed90c83eebac43.gif",
+  "https://img.booru.org/censored//images/35/18a8ac9fa0f774e46b985c46ab7518a7349a1fb6.gif",
+  "https://img.booru.org/censored//images/35/ca23e769660eb2566063c8481dceea8c988bc9e2.gif",
+  "https://img.booru.org/censored//images/35/5222d1729a7edd21e7d7d1855477dac9b61ecce5.gif",
+  "https://img.booru.org/censored//images/35/f9d7c9e26bc5ebbb55887a2245d55a2997976a0f.gif",
+  "https://img.booru.org/censored//images/35/f90aedfae3db6de1de0771061b1407173a0bcdc0.gif",
+  "https://img.booru.org/censored//images/35/fda85526ff1c87d4d2f79228f9a537aa47ea1c2f.gif",
+  "https://img.booru.org/censored//images/25/2132df1f5f2503158b5b59f1e8719200958208fb.gif",
+  "https://img.booru.org/censored//images/34/a65ffe862e5bdff34ca218a966f06bd358951a69.gif",
+  "https://img.booru.org/censored//images/34/045e5fac3680e95dfc3bb37604c9fa5cf1c76d6a.gif",
+  "https://img.booru.org/censored//images/34/3970cee4247d4a82544fe754bb006a3c0f7f32a5.gif",
+  "https://img.booru.org/censored//images/34/75d9be066e7e88b54dcde1c59c9580a0ffc53158.gif",
+  "https://img.booru.org/censored//images/34/9148ff83cbd0da56f1c25ba24649afdf574d8b39.gif",
+  "https://img.booru.org/censored//images/34/8bcb9210bec5d7e7da2e9e3ef8753aac0f74b6af.gif",
+  "https://img.booru.org/censored//images/34/43728db6b46a579a7664f1c49784d9d77a1b6199.gif",
+  "https://img.booru.org/censored//images/34/755243440ee4ac4973d95866344bd61543982706.gif",
+  "https://img.booru.org/censored//images/34/f57ce433d0e98a3d25313f2433a6121bf3a2765d.gif",
+  "https://img.booru.org/censored//images/34/047d69627e9ad37eb0ce167d7bc8eec9ecd262ef.gif",
+  "https://img.booru.org/censored//images/34/e7fb0a516a165c138758cd22bbd58610836f5f2a.gif",
+  "https://img.booru.org/censored//images/34/0a04027b9c903c23dd5edb73932fd010d4397a1d.gif",
+  "https://img.booru.org/censored//images/34/d4397c8a38523e250f5ee716da27cd243281fc08.gif",
+  "https://img.booru.org/censored//images/34/567695c96a366f10235407a1a51a05965757a0d6.gif",
+  "https://img.booru.org/censored//images/34/60dba180bd67b8c690ebca205fe2a0fbf21ec46b.gif",
+  "https://img.booru.org/censored//images/34/42f0032fed412d82ac6d6cf2992f7ef8eb906ae5.gif",
+  "https://img.booru.org/censored//images/34/2808f55b5ab3f780b678765e76d71121c72c21aa.gif",
+  "https://img.booru.org/censored//images/34/d96f288deedc669d4edbc5fe8ab29420790c9d6d.gif",
+  "https://img.booru.org/censored//images/34/9214added28007eb237be3007eb1e13d072746a5.gif",
+  "https://img.booru.org/censored//images/34/611f9459b6a2e491ff6de46b1d8e6ebefa8924e1.gif",
+  "https://img.booru.org/censored//images/34/7c4d73defc1acfcce5ca04f6160434574843259b.gif",
+  "https://img.booru.org/censored//images/34/81805d250dee2f43993a8a6b6205c88397fcf36d.gif",
+  "https://img.booru.org/censored//images/32/26c6a1a5dc5ed141847c6608311a295c011d0bf9.gif",
+  "https://img.booru.org/censored//images/34/f4d4ec294ac43f9e3d737826c466a39eaed276e2.gif",
+  "https://img.booru.org/censored//images/29/0e923ca437ab058fcb51f03d70d7c2fadbc7b0f2.gif",
+  "https://img.booru.org/censored//images/34/bed2fa5844c564a9595f8d0dd004b9b7e75b86ca.gif",
+  "https://img.booru.org/censored//images/34/b332eeaff49a7580e5c624c965a05cb105b47846.gif",
+  "https://img.booru.org/censored//images/34/83fa9c13d4d8ed6541045982a77486230f06683c.gif",
+  "https://img.booru.org/censored//images/34/9d471520f978a8fe5111b28cb08309bf8338d264.gif",
+  "https://img.booru.org/censored//images/34/09d9579fb0559026bf3cdd1cd4663d4d257ddba9.gif",
+  "https://img.booru.org/censored//images/34/b2e72fede7492c95eb0c0090da90ca5f7acbb7d3.gif",
+  "https://img.booru.org/censored//images/34/dc2d71855276879b88904521dbb40de5aebd16b7.gif",
+  "https://img.booru.org/censored//images/34/5e941f5acba210a5926b646086f62f091e5987ed.gif",
+  "https://img.booru.org/censored//images/34/a54754e203a750161037a3a58843583052c90eca.gif",
+  "https://img.booru.org/censored//images/34/855d99768eab2c6692d36b65fa801c783b34b85e.gif",
+  "https://img.booru.org/censored//images/34/8b0cd6a3b5fcf16f7f656c43fb72219feb0b055c.gif",
+  "https://img.booru.org/censored//images/34/af30a5c4d6a92d72d17aca395c2592f63bcab4e8.gif",
+  "https://img.booru.org/censored//images/34/e878596967eefba69cbfb5ae304ea8339d254e1d.gif",
+  "https://img.booru.org/censored//images/34/fcee6d4255ebe776d762e60e225c14a444610849.gif",
+  "https://img.booru.org/censored//images/34/a2480cac7c6e1e2ed1cc980a0d448249ec1f1441.gif",
+  "https://img.booru.org/censored//images/33/4e67f6609d697b5db1ebeb8c4023aaaf4721e691.gif",
+  "https://img.booru.org/censored//images/33/527206ebd78c7267c1c970405e97298de6ad9875.gif",
+  "https://img.booru.org/censored//images/33/79e9a94d4265dd7ab4439fc1f0af368522198867.gif",
+  "https://img.booru.org/censored//images/33/4f195b4d412f0a88060c12a8d81fe806272f046b.gif",
+  "https://img.booru.org/censored//images/33/9ad2a09eff3cf3ccc26ca617e38351b5b924bd5d.gif",
+  "https://img.booru.org/censored//images/33/291dfa7503336f766d9b0a07b89d6f305b42041b.gif",
+  "https://img.booru.org/censored//images/33/170db0323717baa889677df44cbb1622ef48d6c4.gif",
+  "https://img.booru.org/censored//images/33/67564ba4b77eeef548104db02af9695e917423be.gif",
+  "https://img.booru.org/censored//images/33/74b7da6162da3b97511d0bbc0b42c25342c86e9d.gif",
+  "https://img.booru.org/censored//images/33/64f6ad460d15e64d1595255754449d3096944c7d.gif",
+  "https://img.booru.org/censored//images/33/f53d6e74430e29b65d3cfef7e5a4b2c38a995978.gif",
+  "https://img.booru.org/censored//images/33/480586c878fb5d46d1bc2f22b04e6e36d550d501.gif",
+  "https://img.booru.org/censored//images/33/1bc9e90b3d31b9d888f3cdc0a7e1cc3881c40d45.gif",
+  "https://img.booru.org/censored//images/33/d50fa3cbf9d97ad3fc5c54e05df71f21e1bb504e.gif",
+  "https://img.booru.org/censored//images/33/10033ae97614d945ade48c67a20c082be295e5df.gif",
+  "https://img.booru.org/censored//images/33/0aafc3edc8c4655effd692df6c63ad1d53adab76.gif",
+  "https://img.booru.org/censored//images/33/ac2a05d13d139ddc5acc052070d5c244f3b64299.gif",
+  "https://img.booru.org/censored//images/32/aa0e248fd27e27371a94eabf879e15a2d6faf900.gif",
+  "https://img.booru.org/censored//images/32/95b57f173bb670b28586411f8afd79a2394a3b6a.gif",
+  "https://img.booru.org/censored//images/32/561f49864c2e3364902046c9754b3494abe4aa19.gif",
+  "https://img.booru.org/censored//images/33/1bae0462e059e05231e17a8ea297b8439d6c5cfe.gif",
+  "https://img.booru.org/censored//images/33/ac118561c6f8506f0d050c0721116cfc7c8df349.gif",
+  "https://img.booru.org/censored//images/33/416301ee28f7d4da2e1c3236b673a48ac8d3b044.gif",
+  "https://img.booru.org/censored//images/33/fe6d8c7d4c18bbf695d7381d45adfed3fbab510a.gif",
+  "https://img.booru.org/censored//images/33/a5ce815ea950f88fb5dedac3795750fed48f0f10.gif",
+  "https://img.booru.org/censored//images/33/257afb78dd9f0ec029f272e1455b1df64aafe61f.gif",
+  "https://img.booru.org/censored//images/33/01ca1e34d7a1b4ef41961c48b8b624952faea247.gif",
+  "https://img.booru.org/censored//images/33/66850e31ca8530142f311a4c674d2436714accb2.gif",
+  "https://img.booru.org/censored//images/33/57b383c999b90cce567e6c07e48b4037a38047bc.gif",
+  "https://img.booru.org/censored//images/33/7aa4ccd04307f80cbf5b5406f1c148ea65149cd6.gif",
+  "https://img.booru.org/censored//images/33/9f7f17714e5147f31e3c8803ac8a7ce382eb1fd1.gif",
+  "https://img.booru.org/censored//images/33/aa66f814d0a030fac95b2d58539d2b08b68c22b1.gif",
+  "https://img.booru.org/censored//images/33/f3a8486682a69b84f68ce01204e203b7bd02420a.gif",
+  "https://img.booru.org/censored//images/33/1543ca47d272bcc235edc71bb721fdc780cf4a0a.gif",
+  "https://img.booru.org/censored//images/33/b69f1f892f8fb9db73a98c468d0638ba3b2f9814.gif",
+  "https://img.booru.org/censored//images/33/d055cbe6bee3303abca493d31039d9daa1e13035.gif",
+  "https://img.booru.org/censored//images/33/b5b775298443e2eede6ace5be24e60035e595d0a.gif",
+  "https://img.booru.org/censored//images/33/75a1ea9fe83b2480c27f046a59dc9c39471993ae.gif",
+  "https://img.booru.org/censored//images/33/1aef3b8558fe7f7ef5ba7e1c776920bb673b250b.gif",
+  "https://img.booru.org/censored//images/33/88e502e20e2fa77b0f9fe71f2ef986cb5b58d562.gif",
+  "https://img.booru.org/censored//images/32/b0c10c180062d55930d1176855d2566c5312ecdd.gif",
+  "https://img.booru.org/censored//images/32/7b2416077d660b341e539f8a6e4ed64ecceff220.gif"
+];
+
+let currentAspirationalIndex = Math.floor(Math.random() * censoredBooruPool.length);
+let lastAspirationalSwitchTime = 0;
+
+function applyAspirationalOpacity(valPct) {
+  const norm = Math.max(0.05, Math.min(0.9, (valPct || config.aspirationalOpacity || 30) / 100));
+  document.documentElement.style.setProperty("--aspirational-opacity", norm.toFixed(2));
+}
+
+function nextAspirationalLoop() {
+  if (!censoredBooruPool || censoredBooruPool.length === 0) return;
+  currentAspirationalIndex = (currentAspirationalIndex + 1) % censoredBooruPool.length;
+  lastAspirationalSwitchTime = Date.now();
+  const url = censoredBooruPool[currentAspirationalIndex];
+
+  const ambientImg = document.getElementById("aspirational-ambient-img");
+  const cameraImg = document.getElementById("mp-camera-aspirational-img");
+
+  if (ambientImg && ambientImg.src !== url) ambientImg.src = url;
+  if (cameraImg && cameraImg.src !== url) cameraImg.src = url;
+}
+
+function updateAspirationalOverlayUI() {
+  applyAspirationalOpacity(config.aspirationalOpacity);
+
+  const ambientContainer = document.getElementById("aspirational-ambient-container");
+  const cameraImg = document.getElementById("mp-camera-aspirational-img");
+  const mode = config.aspirationalOverlay || "both";
+
+  const inGameScreen = (currentScreen && (currentScreen.startsWith("game-") || currentScreen === "workout"));
+  const showAmbient = (mode === "both" && inGameScreen);
+  const showCamera = (mode === "camera" || mode === "both");
+
+  if (ambientContainer) {
+    ambientContainer.classList.toggle("hidden", !showAmbient);
+  }
+  if (cameraImg) {
+    cameraImg.classList.toggle("hidden", !showCamera);
+  }
+
+  if ((showAmbient || showCamera) && !lastAspirationalSwitchTime) {
+    nextAspirationalLoop();
+  }
+}
+
+function initAspirationalOverlay() {
+  applyAspirationalOpacity(config.aspirationalOpacity);
+
+  document.querySelectorAll("input[name='cfg-aspirational-overlay']").forEach(r => {
+    r.checked = (r.value === config.aspirationalOverlay);
+    r.addEventListener("change", (e) => {
+      config.aspirationalOverlay = e.target.value;
+      localStorage.setItem("os_aspirational_overlay", config.aspirationalOverlay);
+      updateAspirationalOverlayUI();
+    });
+  });
+
+  const opacitySlider = document.getElementById("cfg-aspirational-opacity");
+  if (opacitySlider) {
+    opacitySlider.value = config.aspirationalOpacity;
+    const valSpan = document.getElementById("cfg-aspirational-opacity-val");
+    if (valSpan) valSpan.textContent = `${config.aspirationalOpacity}%`;
+
+    opacitySlider.addEventListener("input", (e) => {
+      config.aspirationalOpacity = parseInt(e.target.value, 10);
+      localStorage.setItem("os_aspirational_opacity", config.aspirationalOpacity);
+      if (valSpan) valSpan.textContent = `${config.aspirationalOpacity}%`;
+      applyAspirationalOpacity(config.aspirationalOpacity);
+    });
+  }
+
+  const nextBtn = document.getElementById("btn-aspirational-next");
+  if (nextBtn) {
+    nextBtn.addEventListener("click", () => nextAspirationalLoop());
+  }
+
+  updateAspirationalOverlayUI();
+}
+
 // App Startup
 window.addEventListener("DOMContentLoaded", () => {
   initHoldChallengeGame();
@@ -8980,4 +9190,5 @@ window.addEventListener("DOMContentLoaded", () => {
   initSessionSharing();
   initPrisonCampaign();
   initWorkoutSystem();
+  initAspirationalOverlay();
 });

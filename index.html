@@ -9,6 +9,9 @@
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous" defer></script>
 </head>
 <body>
+  <div id="aspirational-ambient-container" class="aspirational-ambient-overlay hidden">
+    <img id="aspirational-ambient-img" class="aspirational-ambient-img" alt="" />
+  </div>
   <div id="app">
 
     <!-- Top App Bar -->
@@ -553,6 +556,7 @@
             
             <div class="mp-preview-container">
               <video id="mp-video" autoplay playsinline webkit-playsinline muted class="mp-video-layer"></video>
+              <img id="mp-camera-aspirational-img" class="mp-aspirational-camera-layer hidden" alt="" />
               <canvas id="mp-canvas" width="240" height="180" class="mp-canvas-layer"></canvas>
               <div id="mp-indicator-badge" class="mp-badge badge-far">OUT OF DEPTH</div>
             </div>
@@ -656,6 +660,26 @@
                   <span class="sub-hint" style="display:block; margin-top:4px;">Tracks jaw/lip opening and the object bridge in front of the lips. Triggers feedback if the object leaves the mouth.</span>
                 </div>
                 <button id="btn-mp-calibrate-mouth" type="button" class="btn btn-secondary" style="font-size: 0.78rem; padding: 8px 10px; width: 100%; margin-top: 4px;">👄 Calibrate Object In Mouth</button>
+              </div>
+            </div>
+
+            <!-- Aspirational Loop Overlay (censored.booru.org) -->
+            <div class="mp-mode-settings" style="margin-top: 10px;">
+              <div class="form-group" style="margin-bottom: 8px;">
+                <label>Aspirational Loop Overlay (censored.booru.org)</label>
+                <div class="segmented-control" id="aspirational-overlay-selector">
+                  <label><input type="radio" name="cfg-aspirational-overlay" value="off"> <span>Off</span></label>
+                  <label><input type="radio" name="cfg-aspirational-overlay" value="camera"> <span>Camera</span></label>
+                  <label><input type="radio" name="cfg-aspirational-overlay" value="both" checked> <span>Both</span></label>
+                </div>
+                <span class="sub-hint" style="display:block; margin-top:4px;">Overlays transparent animated loops from censored.booru.org onto camera preview &amp; workout screens.</span>
+              </div>
+              <div id="aspirational-overlay-controls">
+                <div class="form-group" style="margin-top: 6px; margin-bottom: 4px;">
+                  <label>Overlay Transparency &bull; <span id="cfg-aspirational-opacity-val">30%</span></label>
+                  <input type="range" id="cfg-aspirational-opacity" min="10" max="75" step="5" value="30">
+                </div>
+                <button id="btn-aspirational-next" type="button" class="btn btn-secondary" style="font-size: 0.78rem; padding: 6px 10px; width: 100%; margin-top: 4px;">↻ Shuffle Next Loop</button>
               </div>
             </div>
 
