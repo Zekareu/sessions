@@ -38,6 +38,7 @@ const config = {
   mpMouthLock: localStorage.getItem("os_mp_mouth_lock") === "off" ? "off" : "on",
   mpMouthSens: Math.max(10, Math.min(65, parseInt(localStorage.getItem("os_mp_mouth_sens") || "24", 10) || 24)),
   bpmCueMode: ["down", "down_up", "off"].includes(savedBpmCueMode) ? savedBpmCueMode : "down",
+  cameraFacing: localStorage.getItem("os_camera_facing") === "environment" ? "environment" : "user",
   wsUrl: localStorage.getItem("os_ws_url") || "ws://localhost:8080"
 };
 
@@ -3968,7 +3969,7 @@ async function startCameraMeter() {
   const toggleBtn = document.getElementById("btn-camera-toggle");
   try {
     camStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: "user", width: { ideal: 64 }, height: { ideal: 64 } }
+      video: { facingMode: config.cameraFacing || "user", width: { ideal: 64 }, height: { ideal: 64 } }
     });
     video.srcObject = camStream;
     await video.play();
@@ -4184,6 +4185,7 @@ let mpMouthOutFrames = 0;
 let mpSessionHadMouthContact = false;
 let mpMouthDropPunishing = false;
 let mpFrontCloseLatch = false;
+let lastWasAtHilt = false;
 
 function analyzeFrameOcclusionAndBlur(imgData, w, h) {
   if (!imgData || !imgData.data || !w || !h) {
@@ -4434,6 +4436,7 @@ function loadMediaPipeScript() {
 function updateMediaPipeModeUI(mode) {
   config.mpMode = mode;
   mpFrontCloseLatch = false;
+  lastWasAtHilt = false;
   localStorage.setItem("os_mp_mode", mode);
 
   const panelSide = document.getElementById("mp-settings-side");
@@ -4483,6 +4486,19 @@ function initMediaPipeDepth() {
     r.addEventListener("change", (e) => updateMediaPipeModeUI(e.target.value));
   });
   updateMediaPipeModeUI(config.mpMode);
+
+  // Camera Facing Radio Buttons (Front/Selfie vs Back/Rear)
+  document.querySelectorAll("input[name='mp-camera-facing']").forEach(r => {
+    r.checked = (r.value === config.cameraFacing);
+    r.addEventListener("change", async (e) => {
+      config.cameraFacing = e.target.value;
+      localStorage.setItem("os_camera_facing", config.cameraFacing);
+      if (isMediaPipeActive) {
+        stopMediaPipeDepth();
+        await startMediaPipeDepth();
+      }
+    });
+  });
 
   // Direction Radios
   document.querySelectorAll("input[name='mp-side-dir']").forEach(r => {
@@ -4632,7 +4648,7 @@ async function startMediaPipeDepth() {
     if (!mediaPipeStream) {
       mediaPipeStream = await navigator.mediaDevices.getUserMedia({
         video: {
-          facingMode: "user",
+          facingMode: config.cameraFacing || "user",
           width: { ideal: 640 },
           height: { ideal: 480 }
         }
@@ -4696,6 +4712,7 @@ async function startMediaPipeDepth() {
 
 function stopMediaPipeDepth() {
   mpFrontCloseLatch = false;
+  lastWasAtHilt = false;
   if (mediaPipeRaf) {
     cancelAnimationFrame(mediaPipeRaf);
     mediaPipeRaf = null;
@@ -5167,12 +5184,25 @@ function onMediaPipeResults(results) {
       stopPunishLoop();
     }
 
+    const justLockedHilt = isAtHilt && !lastWasAtHilt;
+    lastWasAtHilt = isAtHilt;
+
+    if (justLockedHilt) {
+      if (typeof navigator !== "undefined" && navigator.vibrate) {
+        try { navigator.vibrate(28); } catch (_) {}
+      }
+      playTone(587, 30, "sine"); // Soft positive lock confirmation tone (D5)
+    }
+
     if (isAtHilt) {
       mpSessionHadMouthContact = true;
       handlePhysicalInputState(true);
     } else if (isAtRetract) {
       if (!isRepStrokeArmed) {
         isRepStrokeArmed = true;
+        if (typeof navigator !== "undefined" && navigator.vibrate) {
+          try { navigator.vibrate(15); } catch (_) {}
+        }
         playTone(920, 25, "sine"); // Crisp acoustic feedback on reset!
       }
       handlePhysicalInputState(false);
@@ -5500,6 +5530,10 @@ function initSettingsPage() {
     });
     updateMediaPipeModeUI(config.mpMode);
 
+    document.querySelectorAll("input[name='mp-camera-facing']").forEach(r => {
+      r.checked = (r.value === config.cameraFacing);
+    });
+
     document.querySelectorAll("input[name='mp-side-dir']").forEach(r => {
       r.checked = (r.value === config.mpSideDir);
     });
@@ -5627,6 +5661,17 @@ function initSettingsPage() {
     if (checkedMpMode) {
       config.mpMode = checkedMpMode.value;
       localStorage.setItem("os_mp_mode", config.mpMode);
+    }
+
+    const checkedCameraFacing = document.querySelector("input[name='mp-camera-facing']:checked");
+    if (checkedCameraFacing) {
+      const prevFacing = config.cameraFacing;
+      config.cameraFacing = checkedCameraFacing.value;
+      localStorage.setItem("os_camera_facing", config.cameraFacing);
+      if (prevFacing !== config.cameraFacing && isMediaPipeActive) {
+        stopMediaPipeDepth();
+        startMediaPipeDepth();
+      }
     }
 
     const checkedSideDir = document.querySelector("input[name='mp-side-dir']:checked");

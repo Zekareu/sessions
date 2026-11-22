@@ -541,6 +541,15 @@
                 <label><input type="radio" name="mp-mode" value="front"> <span>Front View</span></label>
               </div>
             </div>
+
+            <!-- Camera Lens (Facing Mode) Selector -->
+            <div class="form-group" style="margin-top: 10px;">
+              <label>Camera Lens</label>
+              <div class="segmented-control" id="mp-camera-facing-selector">
+                <label><input type="radio" name="mp-camera-facing" value="user" checked> <span>Front (Selfie)</span></label>
+                <label><input type="radio" name="mp-camera-facing" value="environment"> <span>Back (Rear)</span></label>
+              </div>
+            </div>
             
             <div class="mp-preview-container">
               <video id="mp-video" autoplay playsinline webkit-playsinline muted class="mp-video-layer"></video>
