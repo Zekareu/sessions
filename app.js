@@ -4183,6 +4183,48 @@ let isObjectInMouth = true;
 let mpMouthOutFrames = 0;
 let mpSessionHadMouthContact = false;
 let mpMouthDropPunishing = false;
+let mpFrontCloseLatch = false;
+
+function analyzeFrameOcclusionAndBlur(imgData, w, h) {
+  if (!imgData || !imgData.data || !w || !h) {
+    return { avgBrightness: 0.5, edgeVariance: 20, isCloseOccluded: false };
+  }
+  const d = imgData.data;
+  const step = 8;
+  let sumLum = 0;
+  let sampleCount = 0;
+  let edgeDiffSum = 0;
+  let edgeCount = 0;
+
+  for (let y = step; y < h - step; y += step) {
+    const rowIdx = y * w;
+    for (let x = step; x < w - step; x += step) {
+      const idx = (rowIdx + x) * 4;
+      const lum = d[idx] * 0.299 + d[idx + 1] * 0.587 + d[idx + 2] * 0.114;
+      sumLum += lum;
+      sampleCount++;
+
+      const rightIdx = (rowIdx + (x + step)) * 4;
+      const downIdx = ((y + step) * w + x) * 4;
+      const lumRight = d[rightIdx] * 0.299 + d[rightIdx + 1] * 0.587 + d[rightIdx + 2] * 0.114;
+      const lumDown = d[downIdx] * 0.299 + d[downIdx + 1] * 0.587 + d[downIdx + 2] * 0.114;
+
+      edgeDiffSum += Math.abs(lum - lumRight) + Math.abs(lum - lumDown);
+      edgeCount += 2;
+    }
+  }
+
+  const avgBrightness = sampleCount > 0 ? (sumLum / (sampleCount * 255)) : 0;
+  const edgeVariance = edgeCount > 0 ? (edgeDiffSum / edgeCount) : 0;
+
+  // 1. Extreme dark (lens physically covered or pitch black): avgBrightness < 0.12
+  // 2. Heavy macro-blur from face/skin/lip contact right in front of the lens:
+  //    When phone screen illuminates face right against the lens, edge contrast drops to near zero (smooth blur).
+  //    Typical edgeVariance for macro-blur contact is < 5.2.
+  const isCloseOccluded = (avgBrightness < 0.12) || (edgeVariance < 5.2 && avgBrightness < 0.85);
+
+  return { avgBrightness, edgeVariance, isCloseOccluded };
+}
 
 function samplePatchRGB(imgData, w, h, cx, cy, halfSize = 6) {
   if (!imgData) return null;
@@ -4210,6 +4252,12 @@ function rgbDist(a, b) {
 }
 
 function evaluateMouthObjectLock(ctx, rawImgData, w, h, landmarks) {
+  if (config.mpMode === "front" && mpFrontCloseLatch) {
+    isObjectInMouth = true;
+    mpMouthOutFrames = 0;
+    return true;
+  }
+
   const upperLip = landmarks[13];
   const lowerLip = landmarks[14];
   const outerUpper = landmarks[0];
@@ -4385,6 +4433,7 @@ function loadMediaPipeScript() {
 
 function updateMediaPipeModeUI(mode) {
   config.mpMode = mode;
+  mpFrontCloseLatch = false;
   localStorage.setItem("os_mp_mode", mode);
 
   const panelSide = document.getElementById("mp-settings-side");
@@ -4646,6 +4695,7 @@ async function startMediaPipeDepth() {
 }
 
 function stopMediaPipeDepth() {
+  mpFrontCloseLatch = false;
   if (mediaPipeRaf) {
     cancelAnimationFrame(mediaPipeRaf);
     mediaPipeRaf = null;
@@ -4938,6 +4988,14 @@ function onMediaPipeResults(results) {
 
       isAtHilt = (distanceCm <= config.mpHiltThreshold);
       isAtRetract = (distanceCm >= config.mpRetractDist);
+
+      if (isAtHilt) {
+        mpFrontCloseLatch = true;
+      } else if (distanceCm >= (config.mpHiltThreshold + 1.8) || distanceCm >= config.mpRetractDist) {
+        // Face has clearly retreated from target
+        mpFrontCloseLatch = false;
+      }
+
       metricDisplay = distanceCm >= 99 ? ">30 cm" : `${distanceCm.toFixed(1)} cm (H:${config.mpHiltThreshold.toFixed(1)}/R:${config.mpRetractDist.toFixed(1)})`;
       progressPct = Math.min(100, Math.max(0, (distanceCm / 20) * 100));
 
@@ -4966,31 +5024,43 @@ function onMediaPipeResults(results) {
     }
 
   } else {
-    // If no face found in front mode, check darkness
+    // If no face found in front mode:
     if (config.mpMode === "front") {
-      try {
-        const imgData = ctx.getImageData(0, 0, w, h);
-        const d = imgData.data;
-        let sum = 0;
-        for (let i = 0; i < d.length; i += 16) {
-          sum += (d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114);
-        }
-        const avgBrightness = sum / ((w * h * 255) / 4);
-        if (avgBrightness < 0.1) {
-          isAtHilt = true;
-          isAtRetract = false;
-          metricDisplay = "0.5 cm";
-          lastEstimatedDistanceCm = 0.5;
-        } else {
-          isAtHilt = false;
-          isAtRetract = true;
-          metricDisplay = "NO FACE";
-          lastEstimatedDistanceCm = 999;
-        }
-      } catch (e) {
+      const analysis = analyzeFrameOcclusionAndBlur(rawFrameImgData, w, h);
+
+      // Idea 1 ("until camera sees face") & Idea 2 (smart macro-blur / lens occlusion):
+      // If camera clearly sees an open room with sharp edges and normal ambient light, user backed away
+      const roomExposed = (analysis.edgeVariance > 14.0 && analysis.avgBrightness > 0.15);
+
+      if (roomExposed && !analysis.isCloseOccluded) {
+        mpFrontCloseLatch = false;
         isAtHilt = false;
-        isAtRetract = false;
+        isAtRetract = true;
         metricDisplay = "NO FACE";
+        lastEstimatedDistanceCm = 999;
+      } else if (mpFrontCloseLatch || analysis.isCloseOccluded) {
+        // User was locked at target and got too close, or camera lens is in close contact / occluded
+        mpFrontCloseLatch = true;
+        isAtHilt = true;
+        isAtRetract = false;
+        metricDisplay = "<2 cm (LOCKED)";
+        lastEstimatedDistanceCm = Math.min(config.mpHiltThreshold * 0.4, 1.2);
+        progressPct = 100;
+        isObjectInMouth = true;
+        mpMouthOutFrames = 0;
+
+        // Visual contact overlay on canvas
+        ctx.fillStyle = "rgba(16, 185, 129, 0.22)";
+        ctx.fillRect(0, 0, w, h);
+        ctx.fillStyle = "#10b981";
+        ctx.font = "bold 11px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("TARGET HELD (CLOSE CONTACT)", w * 0.5, h * 0.5);
+      } else {
+        isAtHilt = false;
+        isAtRetract = true;
+        metricDisplay = "NO FACE";
+        lastEstimatedDistanceCm = 999;
       }
     } else {
       isAtHilt = false;
