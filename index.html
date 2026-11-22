@@ -565,6 +565,13 @@
               <div class="meter-bar"><div id="mp-distance-fill" class="meter-fill" style="width: 100%;"></div></div>
             </div>
 
+            <div id="mp-eye-status-row" class="meter-readout hidden" style="margin-top: 6px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.78rem;">
+                <span id="mp-eye-label">Eye Contact: <b id="mp-eye-val">STANDBY</b></span>
+                <span id="mp-eye-status" style="font-size: 0.75rem; color: var(--emerald-active); font-weight: 800;">FOCUSED</span>
+              </div>
+            </div>
+
             <!-- 1. Side Mode Settings -->
             <div id="mp-settings-side" class="mp-mode-settings">
               <div class="form-group" style="margin-top: 10px;">
@@ -618,6 +625,14 @@
                 <label>Retract / Clearance Distance &bull; <span id="cfg-mp-retract-dist-val">14.0 cm</span></label>
                 <input type="range" id="cfg-mp-retract-dist" min="8.0" max="30.0" step="1.0" value="14.0">
                 <span class="sub-hint" style="display:block; margin-top:4px;">Must pull all the way back past this distance to reset the next rep.</span>
+              </div>
+              <div class="form-group" style="margin-top: 10px;">
+                <label>Eye Contact Discipline (Screen Focus)</label>
+                <div class="segmented-control" id="mp-eye-contact-selector">
+                  <label><input type="radio" name="mp-eye-contact" value="off" checked> <span>Off</span></label>
+                  <label><input type="radio" name="mp-eye-contact" value="on"> <span>Require Screen Focus</span></label>
+                </div>
+                <span class="sub-hint" style="display:block; margin-top:4px;">Uses AI iris &amp; gaze tracking. Continuous punishment if you look away from the screen, look around the room, or close your eyes (natural blinking permitted).</span>
               </div>
             </div>
 

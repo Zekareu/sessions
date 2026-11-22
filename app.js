@@ -47,6 +47,7 @@ const config = {
   mpRetractDist: parseSafeFloat(localStorage.getItem("os_mp_retract_dist"), 14.0),
   mpMouthLock: localStorage.getItem("os_mp_mouth_lock") === "off" ? "off" : "on",
   mpMouthSens: Math.max(10, Math.min(65, parseSafeInt(localStorage.getItem("os_mp_mouth_sens"), 24))),
+  mpEyeContact: localStorage.getItem("os_mp_eye_contact") === "on" ? "on" : "off",
   bpmCueMode: ["down", "down_up", "off"].includes(savedBpmCueMode) ? savedBpmCueMode : "down",
   cameraFacing: localStorage.getItem("os_camera_facing") === "environment" ? "environment" : "user",
   wsUrl: localStorage.getItem("os_ws_url") || "ws://localhost:8080"
@@ -971,6 +972,9 @@ function stopAllGames() {
   isPhysicalDown = false;
   mpSessionHadMouthContact = false;
   mpMouthDropPunishing = false;
+  mpGazeAvertedFrames = 0;
+  mpGazePunishing = false;
+  isGazeCompliant = true;
   stopBpmPacer();
   stopHoldChallengeGame();
   stopHoldDearLifeGame();
@@ -4214,6 +4218,10 @@ let isObjectInMouth = true;
 let mpMouthOutFrames = 0;
 let mpSessionHadMouthContact = false;
 let mpMouthDropPunishing = false;
+let mpGazeAvertedFrames = 0;
+let mpGazePunishing = false;
+let isGazeCompliant = true;
+let lastGazeStatusText = "FOCUSED ON SCREEN";
 let mpFrontCloseLatch = false;
 let lastWasAtHilt = false;
 
@@ -4395,6 +4403,131 @@ function medianOf3(arr, nextVal) {
   return sorted[1];
 }
 
+function evaluateEyeContactDiscipline(ctx, w, h, landmarks) {
+  if (!landmarks || landmarks.length < 468) {
+    return { compliant: true, statusText: "STANDBY" };
+  }
+
+  const pDist = (p1, p2) => Math.hypot(p1.x - p2.x, p1.y - p2.y);
+
+  // Left & right iris centers (MediaPipe 468 = left iris center, 473 = right iris center)
+  const lPupil = landmarks[468] || {
+    x: (landmarks[33].x + landmarks[133].x) * 0.5,
+    y: (landmarks[159].y + landmarks[145].y) * 0.5
+  };
+  const rPupil = landmarks[473] || {
+    x: (landmarks[263].x + landmarks[362].x) * 0.5,
+    y: (landmarks[386].y + landmarks[374].y) * 0.5
+  };
+
+  // 1. Eye Aspect Ratio (EAR) - Closed eyelids vs open
+  const leftEyeWidth = pDist(landmarks[33], landmarks[133]);
+  const leftEyeHeight = pDist(landmarks[159], landmarks[145]);
+  const leftEAR = leftEyeWidth > 0 ? (leftEyeHeight / leftEyeWidth) : 0.25;
+
+  const rightEyeWidth = pDist(landmarks[263], landmarks[362]);
+  const rightEyeHeight = pDist(landmarks[386], landmarks[374]);
+  const rightEAR = rightEyeWidth > 0 ? (rightEyeHeight / rightEyeWidth) : 0.25;
+
+  const avgEAR = (leftEAR + rightEAR) * 0.5;
+  const eyesClosed = avgEAR < 0.125;
+
+  // 2. Horizontal Gaze Centering (Pupil displacement relative to eye corners)
+  const dOuterL = pDist(lPupil, landmarks[33]);
+  const dInnerL = pDist(lPupil, landmarks[133]);
+  const gazeL = (dOuterL + dInnerL) > 0 ? (dOuterL / (dOuterL + dInnerL)) : 0.5;
+
+  const dInnerR = pDist(rPupil, landmarks[362]);
+  const dOuterR = pDist(rPupil, landmarks[263]);
+  const gazeR = (dInnerR + dOuterR) > 0 ? (dInnerR / (dInnerR + dOuterR)) : 0.5;
+
+  const avgHoriz = (gazeL + gazeR) * 0.5;
+  const gazeAvertedHoriz = (avgHoriz < 0.28 || avgHoriz > 0.72 || gazeL < 0.20 || gazeL > 0.80 || gazeR < 0.20 || gazeR > 0.80);
+
+  // 3. Vertical Gaze Centering
+  const dTopL = pDist(lPupil, landmarks[159]);
+  const dBotL = pDist(lPupil, landmarks[145]);
+  const gazeVL = (dTopL + dBotL) > 0 ? (dTopL / (dTopL + dBotL)) : 0.5;
+
+  const dTopR = pDist(rPupil, landmarks[386]);
+  const dBotR = pDist(rPupil, landmarks[374]);
+  const gazeVR = (dTopR + dBotR) > 0 ? (dTopR / (dTopR + dBotR)) : 0.5;
+
+  const avgVert = (gazeVL + gazeVR) * 0.5;
+  const gazeAvertedVert = (avgVert < 0.18 || avgVert > 0.82);
+
+  // 4. Head Yaw (Turned away from screen)
+  const nose = landmarks[1];
+  const lCheek = landmarks[234];
+  const rCheek = landmarks[454];
+  const dLCheek = nose && lCheek ? Math.hypot(nose.x - lCheek.x, nose.y - lCheek.y) : 1;
+  const dRCheek = nose && rCheek ? Math.hypot(nose.x - rCheek.x, nose.y - rCheek.y) : 1;
+  const yawRatio = (dLCheek + dRCheek) > 0 ? (dLCheek / (dLCheek + dRCheek)) : 0.5;
+  const headTurned = (yawRatio < 0.23 || yawRatio > 0.77);
+
+  const lookingAtScreenThisFrame = !eyesClosed && !headTurned && !gazeAvertedHoriz && !gazeAvertedVert;
+
+  if (lookingAtScreenThisFrame) {
+    mpGazeAvertedFrames = Math.max(0, mpGazeAvertedFrames - 2);
+    if (mpGazeAvertedFrames === 0) {
+      isGazeCompliant = true;
+    }
+    lastGazeStatusText = "FOCUSED ON SCREEN";
+  } else {
+    mpGazeAvertedFrames++;
+    // Natural blinks last 3-6 frames. Grace threshold is 18 frames (~0.6-0.7s) before disciplinary punishment
+    if (mpGazeAvertedFrames >= 18) {
+      isGazeCompliant = false;
+    }
+    if (eyesClosed) lastGazeStatusText = "EYES CLOSED";
+    else if (headTurned) lastGazeStatusText = "HEAD TURNED";
+    else lastGazeStatusText = "LOOKING AWAY";
+  }
+
+  // Visual reticles on canvas
+  if (ctx) {
+    const color = isGazeCompliant ? "#10b981" : "#ff2a5f";
+    ctx.save();
+    ctx.fillStyle = color;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.5;
+
+    // Left iris
+    ctx.beginPath();
+    ctx.arc(lPupil.x * w, lPupil.y * h, 3, 0, 2 * Math.PI);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(lPupil.x * w, lPupil.y * h, 7, 0, 2 * Math.PI);
+    ctx.stroke();
+
+    // Right iris
+    ctx.beginPath();
+    ctx.arc(rPupil.x * w, rPupil.y * h, 3, 0, 2 * Math.PI);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(rPupil.x * w, rPupil.y * h, 7, 0, 2 * Math.PI);
+    ctx.stroke();
+
+    // Focus link
+    ctx.beginPath();
+    ctx.setLineDash([2, 2]);
+    ctx.moveTo(lPupil.x * w, lPupil.y * h);
+    ctx.lineTo(rPupil.x * w, rPupil.y * h);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    if (!isGazeCompliant) {
+      ctx.fillStyle = "rgba(255, 42, 95, 0.95)";
+      ctx.font = "bold 10px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(`🚨 ${lastGazeStatusText}!`, w * 0.5, Math.max(14, lPupil.y * h - 14));
+    }
+    ctx.restore();
+  }
+
+  return { compliant: isGazeCompliant, statusText: lastGazeStatusText };
+}
+
 function loadMediaPipeScript() {
   if (typeof FaceMesh !== "undefined" || (typeof window !== "undefined" && window.FaceMesh)) {
     return Promise.resolve();
@@ -4478,6 +4611,11 @@ function updateMediaPipeModeUI(mode) {
   if (panelSide) panelSide.classList.toggle("hidden", mode !== "side");
   if (panelTop) panelTop.classList.toggle("hidden", mode !== "top");
   if (panelFront) panelFront.classList.toggle("hidden", mode !== "front");
+
+  const eyeStatusRow = document.getElementById("mp-eye-status-row");
+  if (eyeStatusRow) {
+    eyeStatusRow.classList.toggle("hidden", mode !== "front" || config.mpEyeContact !== "on");
+  }
 
   if (calBtn) {
     if (mode === "side") calBtn.textContent = "🎯 Set Target Line (IN)";
@@ -4631,6 +4769,19 @@ function initMediaPipeDepth() {
     });
   }
 
+  // Eye Contact Discipline Radio Buttons
+  document.querySelectorAll("input[name='mp-eye-contact']").forEach(r => {
+    r.checked = (r.value === config.mpEyeContact);
+    r.addEventListener("change", (e) => {
+      config.mpEyeContact = e.target.value;
+      localStorage.setItem("os_mp_eye_contact", config.mpEyeContact);
+      const eyeStatusRow = document.getElementById("mp-eye-status-row");
+      if (eyeStatusRow) {
+        eyeStatusRow.classList.toggle("hidden", config.mpMode !== "front" || config.mpEyeContact !== "on");
+      }
+    });
+  });
+
   // Mouth Object Lock Radio Buttons & Sensitivity Slider
   const mouthControls = document.getElementById("mp-mouth-lock-controls");
   document.querySelectorAll("input[name='mp-mouth-lock']").forEach(r => {
@@ -4676,7 +4827,10 @@ function getMediaPipeDOMElements() {
       lockStatus: document.getElementById("mp-lock-status"),
       distFill: document.getElementById("mp-distance-fill"),
       mouthVal: document.getElementById("mp-mouth-val"),
-      mouthStatus: document.getElementById("mp-mouth-status")
+      mouthStatus: document.getElementById("mp-mouth-status"),
+      eyeStatusRow: document.getElementById("mp-eye-status-row"),
+      eyeVal: document.getElementById("mp-eye-val"),
+      eyeStatus: document.getElementById("mp-eye-status")
     };
   }
   return mpDOMElements;
@@ -4773,6 +4927,9 @@ function stopMediaPipeDepth() {
   isMediaPipeSending = false;
   mpFrontCloseLatch = false;
   lastWasAtHilt = false;
+  mpGazeAvertedFrames = 0;
+  mpGazePunishing = false;
+  isGazeCompliant = true;
 
   if (mediaPipeRaf) {
     cancelAnimationFrame(mediaPipeRaf);
@@ -4878,6 +5035,9 @@ function onMediaPipeResults(results) {
   if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
     const landmarks = results.multiFaceLandmarks[0];
     evaluateMouthObjectLock(ctx, rawFrameImgData, w, h, landmarks);
+    if (config.mpMode === "front" && config.mpEyeContact === "on") {
+      evaluateEyeContactDiscipline(ctx, w, h, landmarks);
+    }
 
     const leftEye = landmarks[33];
     const rightEye = landmarks[263];
@@ -5119,6 +5279,13 @@ function onMediaPipeResults(results) {
         isAtRetract = true;
         metricDisplay = "NO FACE";
         lastEstimatedDistanceCm = 999;
+        if (config.mpEyeContact === "on") {
+          mpGazeAvertedFrames++;
+          if (mpGazeAvertedFrames >= 18) {
+            isGazeCompliant = false;
+            lastGazeStatusText = "NO FACE IN VIEW";
+          }
+        }
       } else if (mpFrontCloseLatch || analysis.isCloseOccluded) {
         // User was locked at target and got too close, or camera lens is in close contact / occluded
         mpFrontCloseLatch = true;
@@ -5129,6 +5296,11 @@ function onMediaPipeResults(results) {
         progressPct = 100;
         isObjectInMouth = true;
         mpMouthOutFrames = 0;
+        if (config.mpEyeContact === "on") {
+          isGazeCompliant = true;
+          mpGazeAvertedFrames = 0;
+          lastGazeStatusText = "CLOSE CONTACT";
+        }
 
         // Visual contact overlay on canvas
         ctx.fillStyle = "rgba(16, 185, 129, 0.22)";
@@ -5142,6 +5314,13 @@ function onMediaPipeResults(results) {
         isAtRetract = true;
         metricDisplay = "NO FACE";
         lastEstimatedDistanceCm = 999;
+        if (config.mpEyeContact === "on") {
+          mpGazeAvertedFrames++;
+          if (mpGazeAvertedFrames >= 18) {
+            isGazeCompliant = false;
+            lastGazeStatusText = "NO FACE IN VIEW";
+          }
+        }
       }
     } else {
       isAtHilt = false;
@@ -5222,7 +5401,57 @@ function onMediaPipeResults(results) {
     }
   }
 
+  // Update Eye Contact Discipline UI & enforcement (Front Mode)
+  const eyeRowEl = els.eyeStatusRow;
+  const eyeValEl = els.eyeVal;
+  const eyeStatusEl = els.eyeStatus;
+  const eyeContactActive = (config.mpEyeContact === "on" && config.mpMode === "front");
+
+  if (eyeContactActive) {
+    if (eyeRowEl) eyeRowEl.classList.remove("hidden");
+    if (eyeValEl) eyeValEl.textContent = lastGazeStatusText;
+    if (eyeStatusEl) {
+      if (isGazeCompliant) {
+        eyeStatusEl.textContent = "✓ FOCUSED";
+        eyeStatusEl.style.color = "var(--emerald-active)";
+      } else {
+        eyeStatusEl.textContent = "⚠️ LOOK AT SCREEN!";
+        eyeStatusEl.style.color = "var(--red-punish)";
+      }
+    }
+  } else {
+    if (eyeRowEl) eyeRowEl.classList.add("hidden");
+  }
+
   if (config.inputSource === "mediapipe") {
+    // 1. Eye Contact Discipline Enforcement
+    if (eyeContactActive && currentScreen.startsWith("game-")) {
+      if (!isGazeCompliant) {
+        // Looking away or eyes closed: cannot hold at target
+        isAtHilt = false;
+        if (!mpGazePunishing) {
+          mpGazePunishing = true;
+          setUnifiedGameState(
+            "punish",
+            "🚨 LOOK AT THE SCREEN!",
+            "Eyes must stay locked on the screen! Look back to stop punishment!"
+          );
+          startPunishLoop();
+        }
+      } else if (mpGazePunishing && isGazeCompliant) {
+        mpGazePunishing = false;
+        if (!mpMouthDropPunishing) {
+          stopPunishLoop();
+          setUnifiedGameState(isAtHilt ? "hold" : "idle");
+        }
+      }
+    } else if (mpGazePunishing) {
+      mpGazePunishing = false;
+      if (!mpMouthDropPunishing) {
+        stopPunishLoop();
+      }
+    }
+
     if (mouthLockActive && hasFace && !isObjectInMouth) {
       // Object is not in the mouth: cannot count as holding at target
       isAtHilt = false;
@@ -5245,7 +5474,9 @@ function onMediaPipeResults(results) {
 
     if (hasFace && isObjectInMouth && mpMouthDropPunishing) {
       mpMouthDropPunishing = false;
-      stopPunishLoop();
+      if (!mpGazePunishing) {
+        stopPunishLoop();
+      }
     }
 
     const justLockedHilt = isAtHilt && !lastWasAtHilt;
@@ -5607,6 +5838,9 @@ function initSettingsPage() {
     document.querySelectorAll("input[name='mp-mouth-lock']").forEach(r => {
       r.checked = (r.value === config.mpMouthLock);
     });
+    document.querySelectorAll("input[name='mp-eye-contact']").forEach(r => {
+      r.checked = (r.value === config.mpEyeContact);
+    });
     const mouthSensInput = document.getElementById("cfg-mp-mouth-sens");
     if (mouthSensInput) {
       mouthSensInput.value = config.mpMouthSens;
@@ -5754,6 +5988,12 @@ function initSettingsPage() {
     if (checkedMouthLock) {
       config.mpMouthLock = checkedMouthLock.value;
       localStorage.setItem("os_mp_mouth_lock", config.mpMouthLock);
+    }
+
+    const checkedEyeContact = document.querySelector("input[name='mp-eye-contact']:checked");
+    if (checkedEyeContact) {
+      config.mpEyeContact = checkedEyeContact.value;
+      localStorage.setItem("os_mp_eye_contact", config.mpEyeContact);
     }
 
     const mouthSensInput = document.getElementById("cfg-mp-mouth-sens");
