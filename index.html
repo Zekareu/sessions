@@ -111,6 +111,15 @@
             <p>Follow an accelerating beat, then finish each stage with a steady hold.</p>
           </div>
         </div>
+
+        <!-- Card 9: Customer Rush (Endless Customer Flow) -->
+        <div class="game-card" data-game="customerrush" role="button" tabindex="0">
+          <img class="card-image" src="images/customer-rush.webp" alt="" loading="lazy">
+          <div class="card-body">
+            <h3>CUSTOMER RUSH</h3>
+            <p>Endless customer flow. Provide for demanding customers, satisfy their desires, and survive escalating punishments!</p>
+          </div>
+        </div>
       </div>
       </div>
 
@@ -1708,6 +1717,138 @@
             <div id="te-sub-hint" class="sub-hint">Match the target tempo, then complete the hold to clear the stage.</div>
           </div>
         </div>
+      </div>
+    </main>
+
+    <!-- SCREEN: SETUP CUSTOMER RUSH -->
+    <main id="screen-setup-customerrush" class="screen setup-screen">
+      <div class="setup-container">
+        <h2 class="setup-title">CUSTOMER RUSH &bull; SETUP</h2>
+        <p class="setup-subtitle">An endless stream of demanding customers arrives. Keep their satisfaction meter filled through obedience, steady rhythm, and deep holds. Hesitate or disappoint them, and their wrath escalates!</p>
+
+        <div class="setup-card">
+          <label class="setup-label">STARTING INTENSITY &bull; <span id="cr-cfg-intensity-val">20%</span></label>
+          <input type="range" id="cr-cfg-intensity" min="5" max="95" step="5" value="20">
+          <span class="sub-hint" style="display:block; margin-top:4px;">Base shock/vibration level delivered when customers discipline you.</span>
+        </div>
+
+        <div class="setup-card">
+          <label class="setup-label">DISCIPLINE ESCALATION STEP</label>
+          <div class="pills-row" id="cr-escalation-pills">
+            <button class="pill-select" data-cr-step="1">+1% / Mistake</button>
+            <button class="pill-select active" data-cr-step="2">+2% / Mistake</button>
+            <button class="pill-select" data-cr-step="3">+3% / Mistake</button>
+            <button class="pill-select" data-cr-step="5">+5% (Brutal)</button>
+          </div>
+          <span class="sub-hint" style="display:block; margin-top:4px;">How quickly punishments intensify as customers grow frustrated or queue difficulty climbs.</span>
+        </div>
+
+        <div class="setup-card">
+          <label class="setup-label">CUSTOMER TEMPERAMENT &amp; PATIENCE</label>
+          <div class="pills-row" id="cr-patience-pills">
+            <button class="pill-select" data-cr-patience="relaxed">Gentle (Patient)</button>
+            <button class="pill-select active" data-cr-patience="normal">Demanding (Normal)</button>
+            <button class="pill-select" data-cr-patience="strict">Strict (Fast Decay)</button>
+            <button class="pill-select" data-cr-patience="relentless">Relentless (Zero Mercy)</button>
+          </div>
+          <span class="sub-hint" style="display:block; margin-top:4px;">Determines how fast customer satisfaction drains when demands are not met.</span>
+        </div>
+
+        <div class="setup-card">
+          <label class="setup-label">CUSTOMER DEMAND VARIETY</label>
+          <div class="pills-row" id="cr-variety-pills">
+            <button class="pill-select active" data-cr-variety="mixed">Full Variety (Holds &amp; Cadence)</button>
+            <button class="pill-select" data-cr-variety="holds">Endurance Holds Only</button>
+            <button class="pill-select" data-cr-variety="rhythm">Cadence &amp; Pacing Only</button>
+          </div>
+          <span class="sub-hint" style="display:block; margin-top:4px;">Whether customers demand deep target holds, stroke rhythm, or a mix of both.</span>
+        </div>
+
+        <button id="btn-play-customerrush" class="btn-play">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          OPEN FOR CUSTOMERS
+        </button>
+      </div>
+    </main>
+
+    <!-- ACTIVE GAME: CUSTOMER RUSH -->
+    <main id="screen-game-customerrush" class="screen">
+      <div class="game-header">
+        <div class="tower-stats-header">
+          <span id="cr-customer-num-pill" class="badge-tower-tag" style="border-color: var(--amber-warn); color: var(--amber-warn);">CUSTOMER #1</span>
+          <span id="cr-archetype-pill" class="badge-tower-tag">THE DEMANDING VIP</span>
+          <span id="cr-intensity-pill" class="badge-intensity-tag hardware-only">DISCIPLINE: 20%</span>
+          <span id="cr-tips-pill" class="badge-tower-tag" style="border-color: var(--emerald-active); color: var(--emerald-active);">TIPS: $0</span>
+        </div>
+      </div>
+
+      <!-- Customer Profile Showcase Card -->
+      <div class="customer-profile-card">
+        <div class="customer-avatar-box">
+          <div id="cr-avatar-art" class="customer-avatar-icon"></div>
+          <span id="cr-mood-badge" class="customer-mood-badge">😐 DEMANDING</span>
+        </div>
+        <div class="customer-info-box">
+          <div class="customer-header-row">
+            <h3 id="cr-customer-name" class="customer-name">Master Vance</h3>
+            <span id="cr-satisfaction-val" class="customer-satisfaction-percent">0%</span>
+          </div>
+          <div class="customer-satisfaction-track">
+            <div id="cr-satisfaction-fill" class="customer-satisfaction-fill" style="width: 0%;"></div>
+          </div>
+          <div class="customer-quote-bubble">
+            <span id="cr-dialogue-text">"Step forward and prove your worth, sissy. Don't keep me waiting."</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Patience / Temper indicator -->
+      <div class="customer-patience-wrapper">
+        <div class="customer-patience-track">
+          <div id="cr-patience-fill" class="customer-patience-fill" style="width: 100%;"></div>
+        </div>
+        <span id="cr-patience-label" class="customer-patience-label">CUSTOMER PATIENCE</span>
+      </div>
+
+      <!-- Action & Demand Arena -->
+      <div id="cr-arena" class="hold-arena">
+        <div class="arena-overlay">
+          <div class="arena-content">
+            <div class="bpm-meta-row" style="width: 100%; max-width: 320px;">
+              <span>DEMAND: <b id="cr-demand-type">DEEP HOLD</b></span>
+              <span id="cr-demand-detail">HOLD AT TARGET</span>
+            </div>
+
+            <div id="cr-pacer-cue" class="pacer-cue-pill hidden">⬇ LISTEN FOR DOWN BEAT</div>
+
+            <div id="cr-cadence-box" class="cadence-readout hidden">
+              <span id="cr-live-bpm" class="bpm-huge">…</span>
+              <span class="bpm-sub">CADENCE &bull; TARGET: <b id="cr-target-bpm">45 BPM</b></span>
+            </div>
+
+            <div id="cr-hold-box" class="cadence-readout">
+              <span id="cr-live-timer" class="bpm-huge">0.0s</span>
+              <span class="bpm-sub" id="cr-hold-sub">TIME HELD DEEP AT TARGET</span>
+            </div>
+
+            <div id="cr-state-label" class="state-label">MOVE IN TO SATISFY</div>
+            <div id="cr-sub-hint" class="sub-hint">Push to target depth to build customer pleasure</div>
+
+            <!-- Customer Climax / Pleased Banner -->
+            <div id="cr-pleased-banner" class="customer-pleased-banner hidden">
+              <div class="pleased-title">✨ CUSTOMER PLEASED! ✨</div>
+              <div class="pleased-tip" id="cr-pleased-tip">+ $35 TIP!</div>
+              <div class="pleased-quote" id="cr-pleased-quote">"Mmm, good girl... Next in line!"</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Forfeit / Cash Out Controls -->
+      <div style="display: flex; gap: 8px; justify-content: center; margin-top: 14px; max-width: 480px; margin-left: auto; margin-right: auto;">
+        <button id="btn-cr-forfeit" type="button" class="btn btn-secondary" style="font-size: 0.8rem; padding: 10px 16px;">
+          🚪 End Shift &amp; Cash Out
+        </button>
       </div>
     </main>
 

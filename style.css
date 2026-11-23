@@ -1748,3 +1748,225 @@ select:focus-visible {
   z-index: 2;
   transition: opacity 0.3s ease;
 }
+
+/* ============================================== */
+/* CUSTOMER RUSH (KUNDEN-MODUS) STYLES            */
+/* ============================================== */
+.customer-profile-card {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  background: linear-gradient(135deg, rgba(28, 12, 36, 0.92), rgba(12, 6, 20, 0.95));
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  border-radius: 16px;
+  padding: 14px 16px;
+  max-width: 520px;
+  margin: 10px auto 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 16px rgba(245, 158, 11, 0.15);
+  backdrop-filter: blur(10px);
+  position: relative;
+  overflow: hidden;
+  transition: all 0.25s ease;
+}
+
+.customer-avatar-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.customer-avatar-icon {
+  width: 68px;
+  height: 68px;
+  border-radius: 14px;
+  background: #180d24;
+  border: 2px solid var(--amber-warn);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.35);
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.customer-avatar-icon svg {
+  width: 56px;
+  height: 56px;
+}
+
+.customer-avatar-icon.pleased {
+  border-color: var(--emerald-active);
+  box-shadow: 0 0 16px rgba(16, 185, 129, 0.55);
+}
+
+.customer-avatar-icon.angry {
+  border-color: var(--red-punish);
+  box-shadow: 0 0 16px rgba(255, 42, 95, 0.65);
+  animation: cr-shake 0.35s ease infinite alternate;
+}
+
+@keyframes cr-shake {
+  0% { transform: translateX(-2px) rotate(-1deg); }
+  100% { transform: translateX(2px) rotate(1deg); }
+}
+
+.customer-mood-badge {
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: rgba(245, 158, 11, 0.2);
+  color: var(--amber-warn);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  white-space: nowrap;
+}
+
+.customer-mood-badge.pleased {
+  background: rgba(16, 185, 129, 0.2);
+  color: var(--emerald-active);
+  border-color: rgba(16, 185, 129, 0.5);
+}
+
+.customer-mood-badge.angry {
+  background: rgba(255, 42, 95, 0.25);
+  color: var(--red-punish);
+  border-color: rgba(255, 42, 95, 0.6);
+}
+
+.customer-info-box {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.customer-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.customer-name {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: 0.5px;
+  margin: 0;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+}
+
+.customer-satisfaction-percent {
+  font-size: 1.1rem;
+  font-weight: 900;
+  color: var(--amber-warn);
+  font-family: var(--font-mono, monospace);
+  text-shadow: 0 0 10px rgba(245, 158, 11, 0.6);
+}
+
+.customer-satisfaction-track {
+  width: 100%;
+  height: 12px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  position: relative;
+}
+
+.customer-satisfaction-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #f59e0b, #10b981, #06b6d4);
+  border-radius: 6px;
+  transition: width 0.12s linear;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.7);
+}
+
+.customer-quote-bubble {
+  background: rgba(0, 0, 0, 0.4);
+  border-left: 3px solid var(--amber-warn);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.76rem;
+  color: rgba(255, 255, 255, 0.88);
+  font-style: italic;
+  line-height: 1.3;
+}
+
+.customer-patience-wrapper {
+  max-width: 520px;
+  margin: 0 auto 10px;
+  padding: 0 4px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.customer-patience-track {
+  flex: 1;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.customer-patience-fill {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, #ef4444, #f59e0b, #10b981);
+  transition: width 0.15s linear;
+}
+
+.customer-patience-label {
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: var(--text-secondary, #94a3b8);
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+}
+
+.customer-pleased-banner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.95), rgba(6, 95, 70, 0.95));
+  border: 2px solid #34d399;
+  border-radius: 16px;
+  padding: 20px 24px;
+  text-align: center;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8), 0 0 30px rgba(16, 185, 129, 0.8);
+  z-index: 10;
+  animation: pleased-pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes pleased-pop {
+  0% { transform: translate(-50%, -50%) scale(0.7); opacity: 0; }
+  100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+}
+
+.pleased-title {
+  font-size: 1.2rem;
+  font-weight: 900;
+  color: #fff;
+  letter-spacing: 1px;
+  margin-bottom: 6px;
+}
+
+.pleased-tip {
+  font-size: 1.5rem;
+  font-weight: 900;
+  color: #fef08a;
+  text-shadow: 0 0 12px rgba(253, 224, 71, 0.8);
+  margin-bottom: 6px;
+}
+
+.pleased-quote {
+  font-size: 0.85rem;
+  font-style: italic;
+  color: rgba(255, 255, 255, 0.9);
+}

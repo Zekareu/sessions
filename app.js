@@ -700,7 +700,7 @@ function stopPunishLoop() {
 // ==========================================
 const SHAREABLE_GAMES = new Set([
   "holdchallenge", "holddearlife", "reachcount", "rhythm",
-  "tower", "routine", "blindhilt", "tempoescalation"
+  "tower", "routine", "blindhilt", "tempoescalation", "customerrush"
 ]);
 
 // Only controls inside a game setup screen are shared. Device connections,
@@ -891,6 +891,7 @@ function switchScreen(targetScreen) {
       else if (g === "routine") title.textContent = "SETUP: CIRCUIT QUEST";
       else if (g === "blindhilt") title.textContent = "SETUP: HIDDEN TIMER";
       else if (g === "tempoescalation") title.textContent = "SETUP: TEMPO ASCENT";
+      else if (g === "customerrush") title.textContent = "SETUP: CUSTOMER RUSH";
     } else if (targetScreen.startsWith("game-")) {
       const g = targetScreen.replace("game-", "");
       if (g === "holdchallenge") {
@@ -917,6 +918,9 @@ function switchScreen(targetScreen) {
       } else if (g === "tempoescalation") {
         title.textContent = "TEMPO ASCENT";
         resetTempoEscalationState();
+      } else if (g === "customerrush") {
+        title.textContent = "CUSTOMER RUSH";
+        resetCustomerRushState();
       } else if (g === "prison") {
         title.textContent = "DEEPTHROAT PRISON";
         resetPrisonGameArena();
@@ -989,6 +993,7 @@ function stopAllGames() {
   stopTempoEscalationGame();
   if (typeof stopPrisonGame === "function") stopPrisonGame();
   if (typeof stopWorkoutGame === "function") stopWorkoutGame();
+  if (typeof stopCustomerRushGame === "function") stopCustomerRushGame();
   stopPunishLoop();
   releaseScreenWakeLock();
   document.body.removeAttribute("data-game-state");
@@ -1022,6 +1027,8 @@ function setUnifiedGameState(stateName, labelText = null, subHintText = null) {
     arenaId = "prison-arena"; labelId = "prison-state-label"; hintId = "prison-sub-hint";
   } else if (currentScreen === "game-workout") {
     arenaId = "workout-arena"; labelId = "workout-state-label"; hintId = "workout-sub-hint";
+  } else if (currentScreen === "game-customerrush") {
+    arenaId = "cr-arena"; labelId = "cr-state-label"; hintId = "cr-sub-hint";
   }
 
   const arena = arenaId ? document.getElementById(arenaId) : null;
@@ -1116,6 +1123,8 @@ function handlePhysicalInputState(isDown) {
     handlePrisonSensorInput(isDown);
   } else if (currentScreen === "game-workout") {
     handleWorkoutSensorInput(isDown);
+  } else if (currentScreen === "game-customerrush") {
+    handleCustomerRushLogic(isDown);
   }
 }
 
@@ -9170,6 +9179,546 @@ function initAspirationalOverlay() {
   updateAspirationalOverlayUI();
 }
 
+// ==========================================
+// CUSTOMER RUSH (ENDLESS CUSTOMER SERVICE MODE)
+// ==========================================
+let crStartIntensity = 20;
+let crEscalationStep = 2;
+let crPatienceMode = "normal"; // relaxed, normal, strict, relentless
+let crVarietyMode = "mixed"; // mixed, holds, rhythm
+
+// Runtime state
+let crCustomerStreak = 1;
+let crTotalTips = 0;
+let crInfractions = 0;
+let crCurrentIntensity = 20;
+let crCurrentCustomer = null;
+let crSatisfaction = 0;
+let crPatience = 100;
+let crHeldSec = 0;
+let crCadenceBeats = 0;
+let crIsAtHilt = false;
+let crTicker = null;
+let crPacerTicker = null;
+let crPacerPhase = false; // false = DOWN, true = UP
+let crIsPleasedCelebrating = false;
+let crIsPunishing = false;
+let crRepArmed = true;
+
+const CR_ARCHETYPES = [
+  {
+    type: "dominant",
+    title: "THE HEAVY DOMINANT",
+    quotes: {
+      intro: ["Step forward and take it deep, sissy.", "Show me you can submit without making a sound.", "Deeper. Don't you dare flinch."],
+      holding: ["Hold it right there. Good toy.", "Take every inch. Obey.", "Stay buried. You belong down there."],
+      waiting: ["You are drifting! Get back down!", "Hesitating in front of me?! Unacceptable.", "Push deeper before I teach you a lesson!"],
+      angry: ["DISOBEDIENT SLUT! FEEL THIS!", "You fail to satisfy! Suffer!", "I said DEEP! Endure your punishment!"],
+      pleased: ["Mmm, thoroughly compliant. Here is your reward.", "Good sissy. You took it well.", "Satisfied. Move to the next one."]
+    }
+  },
+  {
+    type: "speed",
+    title: "THE SPEED DEMON",
+    quotes: {
+      intro: ["Fast strokes only! Can your throat keep up?", "No sluggish pacing around here, worm!", "Match my beat or get zapped!"],
+      holding: ["Yes! Keep that rapid pace going!", "Pump it fast! Don't slow down!", "That's the rhythm, sissy!"],
+      waiting: ["Too slow! Speed up!", "Are you falling asleep?! Move!", "Pick up the cadence now!"],
+      angry: ["TOO SLOW! TAKE THE SHOCK!", "Pathetic rhythm! Suffer!", "PUMP OR BURN!"],
+      pleased: ["Phew! Fantastic stamina, bitch. Take your tip.", "Blistering fast! Just how I like it.", "Done! You earned every penny."]
+    }
+  },
+  {
+    type: "strict",
+    title: "THE STRICT MASTER",
+    quotes: {
+      intro: ["I demand total stillness and zero excuses.", "Sloppy posture will not be tolerated.", "Let us see if your discipline holds."],
+      holding: ["Impeccable stillness. Do not tremble.", "Maintain lock. Breathe through your nose.", "Exact submission. Acceptable."],
+      waiting: ["Disgraceful lack of focus. Re-engage immediately.", "My patience is wearing thin.", "Do not test my limits, servant."],
+      angry: ["INSOLENT TOY! DISCIPLINE REQUIRED!", "Zero tolerance for weakness! Endure!", "Pain is your only correction!"],
+      pleased: ["A flawless demonstration. Accept your compensation.", "Strict obedience deserves proper pay.", "You have met my standards."]
+    }
+  },
+  {
+    type: "vip",
+    title: "THE IMPATIENT VIP",
+    quotes: {
+      intro: ["I'm paying top dollar, so make it spectacular.", "I don't have all night. Impress me.", "Show me why they recommended you."],
+      holding: ["Oh yes... that's worth the price.", "Mmm, delightful technique...", "Keep going, don't stop now!"],
+      waiting: ["My time is money! Service me!", "Is this what I paid for?! Move!", "Hurry up, sissy!"],
+      angry: ["WORST SERVICE EVER! TASTE VOLTAGE!", "I DEMAND PERFECTION! TAKE THIS!", "REFUND THROUGH PAIN!"],
+      pleased: ["Sensational! Here's a massive tip, sweetheart.", "Worth every single dollar. Splendid.", "Exquisite work. Next client!"]
+    }
+  }
+];
+
+const CR_NAMES = [
+  "Master Vance", "Lord Damien", "Mr. Sterling", "Captain Rex", "Boss Roman",
+  "Viktor", "Kane", "Lucian", "Sir Douglas", "Dante", "Garrison", "Baron Richter"
+];
+
+function renderCustomerAvatarSVG(archetype, mood) {
+  let bgGradStart = "#1e1b4b";
+  let bgGradEnd = "#0f172a";
+  let accentColor = "#a855f7";
+  let eyeColor = "#f8fafc";
+  let browAngle = 0;
+  let mouthPath = "M 38 68 Q 50 72 62 68";
+
+  if (archetype === "dominant") {
+    bgGradStart = "#450a0a";
+    bgGradEnd = "#1c1917";
+    accentColor = "#ef4444";
+    browAngle = -10;
+  } else if (archetype === "speed") {
+    bgGradStart = "#082f49";
+    bgGradEnd = "#0f172a";
+    accentColor = "#06b6d4";
+  } else if (archetype === "strict") {
+    bgGradStart = "#2e1065";
+    bgGradEnd = "#1e1b4b";
+    accentColor = "#d946ef";
+    browAngle = -15;
+  } else if (archetype === "vip") {
+    bgGradStart = "#451a03";
+    bgGradEnd = "#18181b";
+    accentColor = "#f59e0b";
+  }
+
+  if (mood === "pleased") {
+    mouthPath = "M 36 64 Q 50 78 64 64";
+    eyeColor = "#4ade80";
+  } else if (mood === "angry") {
+    mouthPath = "M 38 72 Q 50 62 62 72";
+    eyeColor = "#f87171";
+    browAngle = -22;
+  }
+
+  return `
+    <svg viewBox="0 0 100 100" width="68" height="68" style="display:block; border-radius:50%; box-shadow: 0 0 14px ${accentColor}40;">
+      <circle cx="50" cy="50" r="48" fill="${bgGradEnd}" stroke="${accentColor}" stroke-width="2.5"/>
+      <path d="M 16 92 C 24 74 36 70 50 70 C 64 70 76 74 84 92 Z" fill="${accentColor}" opacity="0.35"/>
+      <path d="M 40 70 L 50 84 L 60 70 Z" fill="${accentColor}" opacity="0.8"/>
+      <ellipse cx="50" cy="46" rx="24" ry="28" fill="#18181b" stroke="${accentColor}" stroke-width="1.8"/>
+      ${archetype === "dominant" ? `<path d="M 28 32 Q 50 18 72 32 Q 50 26 28 32 Z" fill="${accentColor}"/>` : ""}
+      ${archetype === "speed" ? `<path d="M 24 38 L 48 20 L 52 30 L 76 22 L 68 40 Z" fill="${accentColor}"/>` : ""}
+      ${archetype === "strict" ? `<circle cx="58" cy="44" r="9" fill="none" stroke="${accentColor}" stroke-width="1.5"/><line x1="58" y1="53" x2="65" y2="72" stroke="${accentColor}" stroke-width="1.2"/>` : ""}
+      ${archetype === "vip" ? `<path d="M 32 24 L 38 14 L 50 22 L 62 14 L 68 24 Z" fill="#fbbf24"/>` : ""}
+      <line x1="32" y1="${40 - browAngle/3}" x2="44" y2="${38 + browAngle/3}" stroke="${accentColor}" stroke-width="2.5" stroke-linecap="round"/>
+      <line x1="56" y1="${38 + browAngle/3}" x2="68" y2="${40 - browAngle/3}" stroke="${accentColor}" stroke-width="2.5" stroke-linecap="round"/>
+      <circle cx="38" cy="45" r="3.2" fill="${eyeColor}"/>
+      <circle cx="62" cy="45" r="3.2" fill="${eyeColor}"/>
+      <path d="${mouthPath}" fill="none" stroke="${mood === 'pleased' ? '#4ade80' : accentColor}" stroke-width="2.2" stroke-linecap="round"/>
+    </svg>
+  `;
+}
+
+function setCustomerRushMood(mood, customQuote = null) {
+  if (!crCurrentCustomer) return;
+  const avatarBox = document.getElementById("cr-avatar-art");
+  const moodBadge = document.getElementById("cr-mood-badge");
+  const dialogueText = document.getElementById("cr-dialogue-text");
+
+  if (avatarBox) {
+    avatarBox.innerHTML = renderCustomerAvatarSVG(crCurrentCustomer.archetype.type, mood);
+  }
+
+  if (moodBadge) {
+    if (mood === "pleased") {
+      moodBadge.textContent = "😏 PLEASED";
+      moodBadge.style.color = "var(--emerald-active)";
+      moodBadge.style.borderColor = "var(--emerald-active)";
+    } else if (mood === "angry") {
+      moodBadge.textContent = "😡 FURIOUS";
+      moodBadge.style.color = "var(--crimson-punish)";
+      moodBadge.style.borderColor = "var(--crimson-punish)";
+    } else {
+      moodBadge.textContent = "😐 DEMANDING";
+      moodBadge.style.color = "var(--amber-warn)";
+      moodBadge.style.borderColor = "var(--amber-warn)";
+    }
+  }
+
+  if (dialogueText) {
+    if (customQuote) {
+      dialogueText.textContent = `"${customQuote}"`;
+    } else {
+      let pool = crCurrentCustomer.archetype.quotes.waiting;
+      if (mood === "pleased") pool = crCurrentCustomer.archetype.quotes.pleased;
+      else if (mood === "angry") pool = crCurrentCustomer.archetype.quotes.angry;
+      else if (crIsAtHilt) pool = crCurrentCustomer.archetype.quotes.holding;
+      const q = pool[Math.floor(Math.random() * pool.length)];
+      dialogueText.textContent = `"${q}"`;
+    }
+  }
+}
+
+function spawnCustomer(index) {
+  const customerNumPill = document.getElementById("cr-customer-num-pill");
+  const archetypePill = document.getElementById("cr-archetype-pill");
+  const intensityPill = document.getElementById("cr-intensity-pill");
+  const tipsPill = document.getElementById("cr-tips-pill");
+  const customerName = document.getElementById("cr-customer-name");
+  const pleasedBanner = document.getElementById("cr-pleased-banner");
+  const demandType = document.getElementById("cr-demand-type");
+  const demandDetail = document.getElementById("cr-demand-detail");
+  const holdBox = document.getElementById("cr-hold-box");
+  const cadenceBox = document.getElementById("cr-cadence-box");
+  const pacerCue = document.getElementById("cr-pacer-cue");
+
+  if (pleasedBanner) pleasedBanner.classList.add("hidden");
+
+  // Pick random archetype
+  let chosenArchetype;
+  if (crVarietyMode === "holds") {
+    chosenArchetype = (index % 2 === 0) ? CR_ARCHETYPES[0] : CR_ARCHETYPES[2];
+  } else if (crVarietyMode === "rhythm") {
+    chosenArchetype = (index % 2 === 0) ? CR_ARCHETYPES[1] : CR_ARCHETYPES[3];
+  } else {
+    chosenArchetype = CR_ARCHETYPES[(index - 1) % CR_ARCHETYPES.length];
+  }
+
+  const name = CR_NAMES[(index - 1) % CR_NAMES.length];
+
+  // Decide demand (hold vs rhythm)
+  let demand = "hold";
+  if (crVarietyMode === "rhythm") {
+    demand = "rhythm";
+  } else if (crVarietyMode === "holds") {
+    demand = "hold";
+  } else {
+    demand = (index % 2 === 0) ? "rhythm" : "hold";
+  }
+
+  const targetHoldSec = Math.min(25, 6 + Math.floor(index * 1.5));
+  const cadenceBpm = Math.min(65, 36 + ((index * 5) % 28));
+  const targetBeats = Math.min(30, 8 + Math.floor(index * 2));
+  const tip = Math.floor(25 + Math.random() * 20 + index * 6);
+
+  crCurrentCustomer = {
+    index,
+    name,
+    archetype: chosenArchetype,
+    demand,
+    targetHoldSec,
+    cadenceBpm,
+    targetBeats,
+    tip
+  };
+
+  crSatisfaction = 0;
+  crPatience = 100;
+  crHeldSec = 0;
+  crCadenceBeats = 0;
+  crIsPunishing = false;
+  crIsPleasedCelebrating = false;
+  crRepArmed = true;
+
+  if (customerNumPill) customerNumPill.textContent = `CUSTOMER #${index}`;
+  if (archetypePill) archetypePill.textContent = chosenArchetype.title;
+  if (intensityPill) intensityPill.textContent = `DISCIPLINE: ${crCurrentIntensity}%`;
+  if (tipsPill) tipsPill.textContent = `TIPS: $${crTotalTips}`;
+  if (customerName) customerName.textContent = name;
+
+  if (demand === "hold") {
+    if (demandType) demandType.textContent = "DEEP HOLD";
+    if (demandDetail) demandDetail.textContent = `HOLD DEEP FOR ${targetHoldSec}s`;
+    if (holdBox) holdBox.classList.remove("hidden");
+    if (cadenceBox) cadenceBox.classList.add("hidden");
+    if (pacerCue) pacerCue.classList.add("hidden");
+    const liveTimer = document.getElementById("cr-live-timer");
+    if (liveTimer) liveTimer.textContent = `0.0s / ${targetHoldSec}s`;
+    clearInterval(crPacerTicker);
+    crPacerTicker = null;
+  } else {
+    if (demandType) demandType.textContent = "RHYTHMIC CADENCE";
+    if (demandDetail) demandDetail.textContent = `MAINTAIN ${cadenceBpm} BPM (${targetBeats} REPS)`;
+    const targetBpmEl = document.getElementById("cr-target-bpm");
+    if (targetBpmEl) targetBpmEl.textContent = `${cadenceBpm} BPM`;
+    if (holdBox) holdBox.classList.add("hidden");
+    if (cadenceBox) cadenceBox.classList.remove("hidden");
+    if (pacerCue) pacerCue.classList.remove("hidden");
+    const liveBpm = document.getElementById("cr-live-bpm");
+    if (liveBpm) liveBpm.textContent = `0 / ${targetBeats}`;
+
+    // Start pacer interval
+    clearInterval(crPacerTicker);
+    const halfBeatMs = Math.round((60000 / cadenceBpm) / 2);
+    crPacerPhase = false;
+    crPacerTicker = setInterval(() => {
+      if (crIsPleasedCelebrating) return;
+      crPacerPhase = !crPacerPhase;
+      const cueEl = document.getElementById("cr-pacer-cue");
+      if (cueEl) {
+        if (!crPacerPhase) {
+          cueEl.textContent = "⬇ DOWN BEAT (PUSH IN)";
+          cueEl.style.borderColor = "var(--emerald-active)";
+          cueEl.style.color = "var(--emerald-active)";
+          playBpmDownCue();
+        } else {
+          cueEl.textContent = "⬆ UP BEAT (RETRACT)";
+          cueEl.style.borderColor = "var(--violet-brand)";
+          cueEl.style.color = "var(--violet-brand)";
+          playBpmUpCue();
+        }
+      }
+    }, halfBeatMs);
+  }
+
+  // Update progress bars
+  const satFill = document.getElementById("cr-satisfaction-fill");
+  const satVal = document.getElementById("cr-satisfaction-val");
+  const patFill = document.getElementById("cr-patience-fill");
+  if (satFill) satFill.style.width = "0%";
+  if (satVal) satVal.textContent = "0%";
+  if (patFill) {
+    patFill.style.width = "100%";
+    patFill.style.background = "var(--emerald-active)";
+  }
+
+  const introQuotes = chosenArchetype.quotes.intro;
+  const quote = introQuotes[Math.floor(Math.random() * introQuotes.length)];
+  setCustomerRushMood("demanding", quote);
+  setUnifiedGameState("ready", "CUSTOMER WAITING", "Move in to satisfy customer demand");
+}
+
+function handleCustomerRushLogic(isDown) {
+  crIsAtHilt = isDown;
+  if (crIsPleasedCelebrating || !crCurrentCustomer) return;
+
+  if (crCurrentCustomer.demand === "hold") {
+    if (isDown) {
+      setUnifiedGameState("holding", "HOLDING FOR CUSTOMER", "Maintain full depth to satisfy customer");
+      playHoldLockCue();
+      if (crIsPunishing) {
+        crIsPunishing = false;
+        stopPunishLoop();
+        const arena = document.getElementById("cr-arena");
+        if (arena) arena.classList.remove("cr-shake");
+        crPatience = 40;
+        setCustomerRushMood("demanding", "Finally back where you belong! Stay there!");
+      }
+    } else {
+      setUnifiedGameState("pause", "MOVE IN TO SATISFY", "Push to target depth to build customer pleasure");
+    }
+  } else if (crCurrentCustomer.demand === "rhythm") {
+    if (isDown) {
+      if (crRepArmed) {
+        crRepArmed = false;
+        crCadenceBeats++;
+        playTactileClick();
+        crSatisfaction = Math.min(100, crSatisfaction + (100 / crCurrentCustomer.targetBeats));
+        crPatience = Math.min(100, crPatience + 7);
+        const liveBpm = document.getElementById("cr-live-bpm");
+        if (liveBpm) liveBpm.textContent = `${crCadenceBeats} / ${crCurrentCustomer.targetBeats}`;
+
+        if (crIsPunishing) {
+          crIsPunishing = false;
+          stopPunishLoop();
+          const arena = document.getElementById("cr-arena");
+          if (arena) arena.classList.remove("cr-shake");
+          crPatience = 35;
+          setCustomerRushMood("demanding", "Keep that rhythm going and don't stop!");
+        }
+
+        if (crSatisfaction >= 100) {
+          completeCurrentCustomer();
+          return;
+        }
+      }
+    } else {
+      crRepArmed = true;
+    }
+  }
+}
+
+function tickCustomerRush() {
+  if (crIsPleasedCelebrating || !crCurrentCustomer) return;
+
+  // Patience decay rate per 100ms
+  let decayRate = 0.22;
+  if (crPatienceMode === "relaxed") decayRate = 0.10;
+  else if (crPatienceMode === "strict") decayRate = 0.38;
+  else if (crPatienceMode === "relentless") decayRate = 0.60;
+
+  if (crCurrentCustomer.demand === "hold") {
+    if (crIsAtHilt) {
+      crHeldSec += 0.1;
+      crSatisfaction = Math.min(100, crSatisfaction + (100 / (crCurrentCustomer.targetHoldSec * 10)));
+      crPatience = Math.min(100, crPatience + 0.35);
+      const liveTimer = document.getElementById("cr-live-timer");
+      if (liveTimer) liveTimer.textContent = `${crHeldSec.toFixed(1)}s / ${crCurrentCustomer.targetHoldSec}s`;
+
+      if (crSatisfaction >= 100) {
+        completeCurrentCustomer();
+        return;
+      }
+    } else {
+      crPatience = Math.max(0, crPatience - decayRate);
+      crSatisfaction = Math.max(0, crSatisfaction - 0.08);
+    }
+  } else if (crCurrentCustomer.demand === "rhythm") {
+    crPatience = Math.max(0, crPatience - decayRate * 0.7);
+  }
+
+  // Update progress bars
+  const satFill = document.getElementById("cr-satisfaction-fill");
+  const satVal = document.getElementById("cr-satisfaction-val");
+  const patFill = document.getElementById("cr-patience-fill");
+
+  if (satFill) satFill.style.width = `${crSatisfaction.toFixed(1)}%`;
+  if (satVal) satVal.textContent = `${Math.floor(crSatisfaction)}%`;
+  if (patFill) {
+    patFill.style.width = `${crPatience.toFixed(1)}%`;
+    if (crPatience > 50) {
+      patFill.style.background = "var(--emerald-active)";
+    } else if (crPatience > 25) {
+      patFill.style.background = "var(--amber-warn)";
+    } else {
+      patFill.style.background = "var(--crimson-punish)";
+    }
+  }
+
+  // Check patience loss / punishment
+  if (crPatience <= 0 && !crIsPunishing) {
+    crIsPunishing = true;
+    crInfractions++;
+    crCurrentIntensity = Math.min(99, crStartIntensity + crInfractions * crEscalationStep);
+    const intensityPill = document.getElementById("cr-intensity-pill");
+    if (intensityPill) intensityPill.textContent = `DISCIPLINE: ${crCurrentIntensity}%`;
+
+    setUnifiedGameState("punish", "CUSTOMER ENRAGED!", "Customer lost patience! Provide service immediately!");
+    setCustomerRushMood("angry");
+    startPunishLoop(crCurrentIntensity, 1300);
+
+    const arena = document.getElementById("cr-arena");
+    if (arena) arena.classList.add("cr-shake");
+  }
+}
+
+function completeCurrentCustomer() {
+  crIsPleasedCelebrating = true;
+  stopPunishLoop();
+  crIsPunishing = false;
+
+  const arena = document.getElementById("cr-arena");
+  if (arena) arena.classList.remove("cr-shake");
+
+  playStageClearChime();
+
+  crTotalTips += crCurrentCustomer.tip;
+  const tipsPill = document.getElementById("cr-tips-pill");
+  if (tipsPill) tipsPill.textContent = `TIPS: $${crTotalTips}`;
+
+  setCustomerRushMood("pleased");
+
+  const pleasedBanner = document.getElementById("cr-pleased-banner");
+  const pleasedTip = document.getElementById("cr-pleased-tip");
+  const pleasedQuote = document.getElementById("cr-pleased-quote");
+
+  if (pleasedTip) pleasedTip.textContent = `+ $${crCurrentCustomer.tip} TIP!`;
+  if (pleasedQuote) {
+    const quotes = crCurrentCustomer.archetype.quotes.pleased;
+    pleasedQuote.textContent = `"${quotes[Math.floor(Math.random() * quotes.length)]}"`;
+  }
+  if (pleasedBanner) pleasedBanner.classList.remove("hidden");
+
+  setUnifiedGameState("can-release", "CUSTOMER SATISFIED!", `Awarded +$${crCurrentCustomer.tip} tip`);
+
+  setTimeout(() => {
+    if (currentScreen === "game-customerrush") {
+      crCustomerStreak++;
+      spawnCustomer(crCustomerStreak);
+    }
+  }, 2300);
+}
+
+function resetCustomerRushState() {
+  stopCustomerRushGame();
+  crCustomerStreak = 1;
+  crTotalTips = 0;
+  crInfractions = 0;
+  crCurrentIntensity = crStartIntensity;
+  crIsPleasedCelebrating = false;
+  crIsPunishing = false;
+  spawnCustomer(crCustomerStreak);
+  crTicker = setInterval(tickCustomerRush, 100);
+}
+
+function stopCustomerRushGame() {
+  if (crTicker) {
+    clearInterval(crTicker);
+    crTicker = null;
+  }
+  if (crPacerTicker) {
+    clearInterval(crPacerTicker);
+    crPacerTicker = null;
+  }
+  stopPunishLoop();
+  crIsPunishing = false;
+  crIsPleasedCelebrating = false;
+  const arena = document.getElementById("cr-arena");
+  if (arena) arena.classList.remove("cr-shake");
+}
+
+function initCustomerRushGame() {
+  // Intensity slider
+  const intensitySlider = document.getElementById("cr-cfg-intensity");
+  const intensityVal = document.getElementById("cr-cfg-intensity-val");
+  if (intensitySlider) {
+    intensitySlider.value = crStartIntensity;
+    if (intensityVal) intensityVal.textContent = `${crStartIntensity}%`;
+    intensitySlider.addEventListener("input", (e) => {
+      crStartIntensity = parseInt(e.target.value, 10);
+      if (intensityVal) intensityVal.textContent = `${crStartIntensity}%`;
+    });
+  }
+
+  // Escalation pills
+  document.querySelectorAll("#cr-escalation-pills .pill-select").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll("#cr-escalation-pills .pill-select").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      crEscalationStep = parseInt(btn.getAttribute("data-cr-step"), 10) || 2;
+    });
+  });
+
+  // Patience pills
+  document.querySelectorAll("#cr-patience-pills .pill-select").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll("#cr-patience-pills .pill-select").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      crPatienceMode = btn.getAttribute("data-cr-patience") || "normal";
+    });
+  });
+
+  // Variety pills
+  document.querySelectorAll("#cr-variety-pills .pill-select").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll("#cr-variety-pills .pill-select").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      crVarietyMode = btn.getAttribute("data-cr-variety") || "mixed";
+    });
+  });
+
+  // Play button
+  const playBtn = document.getElementById("btn-play-customerrush");
+  if (playBtn) {
+    playBtn.addEventListener("click", () => {
+      switchScreen("game-customerrush");
+    });
+  }
+
+  // Forfeit button
+  const forfeitBtn = document.getElementById("btn-cr-forfeit");
+  if (forfeitBtn) {
+    forfeitBtn.addEventListener("click", () => {
+      stopCustomerRushGame();
+      switchScreen("setup-customerrush");
+    });
+  }
+}
+
 // App Startup
 window.addEventListener("DOMContentLoaded", () => {
   initHoldChallengeGame();
@@ -9180,6 +9729,7 @@ window.addEventListener("DOMContentLoaded", () => {
   initDtsGame();
   initBlindHiltGame();
   initTempoEscalationGame();
+  initCustomerRushGame();
   initBpmCueSelectors();
   initCameraSensor();
   initMediaPipeDepth();
