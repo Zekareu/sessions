@@ -9199,6 +9199,9 @@ let crStageProgress = 0;
 let crSatisfaction = 0;
 let crPatience = 100;
 let crHeldSec = 0;
+let crCurrentContinuousHoldSec = 0;
+let crStallSec = 0;
+let crLastStrokeTimestamp = Date.now();
 let crCadenceBeats = 0;
 let crIsAtHilt = false;
 let crTicker = null;
@@ -9207,6 +9210,13 @@ let crPacerPhase = false; // false = DOWN, true = UP
 let crIsPleasedCelebrating = false;
 let crIsPunishing = false;
 let crRepArmed = true;
+
+function getCrStallGraceLimit() {
+  if (crPatienceMode === "relaxed") return 4.0;
+  if (crPatienceMode === "strict") return 1.8;
+  if (crPatienceMode === "relentless") return 1.2;
+  return 2.5; // normal
+}
 
 const CR_ARCHETYPES = [
   {
@@ -9375,7 +9385,10 @@ function activateCustomerDemand(stageIndex) {
   const currentStage = crCurrentCustomer.stages[stageIndex];
   crStageProgress = 0;
   crHeldSec = 0;
+  crCurrentContinuousHoldSec = 0;
   crCadenceBeats = 0;
+  crStallSec = 0;
+  crLastStrokeTimestamp = Date.now();
   crRepArmed = true;
 
   const totalStages = crCurrentCustomer.stages.length;
@@ -9512,6 +9525,11 @@ function spawnCustomer(index) {
 
   crCurrentStageIndex = 0;
   crStageProgress = 0;
+  crHeldSec = 0;
+  crCurrentContinuousHoldSec = 0;
+  crCadenceBeats = 0;
+  crStallSec = 0;
+  crLastStrokeTimestamp = Date.now();
   crSatisfaction = 0;
   crPatience = 100;
   crIsPunishing = false;
@@ -9547,23 +9565,22 @@ function handleCustomerRushLogic(isDown) {
 
   if (currentStage.demand === "hold") {
     if (isDown) {
-      setUnifiedGameState("holding", "HOLDING FOR CUSTOMER", "Maintain full depth to satisfy customer");
-      playHoldLockCue();
-      if (crIsPunishing) {
-        crIsPunishing = false;
-        stopPunishLoop();
-        const arena = document.getElementById("cr-arena");
-        if (arena) arena.classList.remove("cr-shake");
-        crPatience = 40;
-        setCustomerRushMood("demanding", "Finally back where you belong! Stay there!");
+      if (!crIsPunishing) {
+        setUnifiedGameState("holding", "HOLDING FOR CUSTOMER", "Maintain full depth to satisfy customer");
+        playHoldLockCue();
       }
     } else {
-      setUnifiedGameState("pause", "MOVE IN TO SATISFY", "Push to target depth to build customer pleasure");
+      crCurrentContinuousHoldSec = 0;
+      if (!crIsPunishing) {
+        setUnifiedGameState("pause", "MOVE IN TO SATISFY", "Push to target depth to build customer pleasure");
+      }
     }
   } else if (currentStage.demand === "rhythm") {
     if (isDown) {
       if (crRepArmed) {
         crRepArmed = false;
+        crLastStrokeTimestamp = Date.now();
+        crStallSec = 0;
         crCadenceBeats++;
         playTactileClick();
         crStageProgress = Math.min(1, crCadenceBeats / currentStage.targetBeats);
@@ -9577,8 +9594,9 @@ function handleCustomerRushLogic(isDown) {
           stopPunishLoop();
           const arena = document.getElementById("cr-arena");
           if (arena) arena.classList.remove("cr-shake");
-          crPatience = 35;
+          crPatience = Math.max(crPatience, 30);
           setCustomerRushMood("demanding", "Keep that rhythm going and don't stop!");
+          setUnifiedGameState("ready", "RHYTHMIC CADENCE", "Stroke in time with the down beat");
         }
 
         if (crStageProgress >= 1) {
@@ -9603,24 +9621,57 @@ function tickCustomerRush() {
   else if (crPatienceMode === "strict") decayRate = 0.38;
   else if (crPatienceMode === "relentless") decayRate = 0.60;
 
+  const graceLimit = getCrStallGraceLimit();
+  let isCurrentlyStalling = false;
+
   if (currentStage.demand === "hold") {
     if (crIsAtHilt) {
       crHeldSec += 0.1;
+      crCurrentContinuousHoldSec += 0.1;
+      crStallSec = 0;
       crStageProgress = Math.min(1, crHeldSec / currentStage.targetHoldSec);
       updateOverallSatisfaction();
       crPatience = Math.min(100, crPatience + 0.35);
       const liveTimer = document.getElementById("cr-live-timer");
       if (liveTimer) liveTimer.textContent = `${crHeldSec.toFixed(1)}s / ${currentStage.targetHoldSec}s`;
 
+      // Continuous unbroken hold for >= 0.5s clears punishment (anti-tap-exploit)
+      if (crIsPunishing && crCurrentContinuousHoldSec >= 0.5) {
+        crIsPunishing = false;
+        stopPunishLoop();
+        const arena = document.getElementById("cr-arena");
+        if (arena) arena.classList.remove("cr-shake");
+        crPatience = Math.max(crPatience, 30);
+        setCustomerRushMood("demanding", "Good girl... stay locked in!");
+        setUnifiedGameState("holding", "HOLDING FOR CUSTOMER", "Maintain full depth to satisfy customer");
+      }
+
       if (crStageProgress >= 1) {
         advanceCustomerDemand();
         return;
       }
     } else {
-      crPatience = Math.max(0, crPatience - decayRate);
+      crCurrentContinuousHoldSec = 0;
+      crStallSec += 0.1;
+      isCurrentlyStalling = true;
+      crPatience = Math.max(0, crPatience - (decayRate * 2.5));
+      crSatisfaction = Math.max(0, crSatisfaction - 0.08);
+      updateOverallSatisfaction();
     }
   } else if (currentStage.demand === "rhythm") {
-    crPatience = Math.max(0, crPatience - decayRate * 0.7);
+    const beatSec = 60 / currentStage.cadenceBpm;
+    const maxCadenceInterval = Math.max(1.6, beatSec * 2.0);
+    const timeSinceLastStroke = (Date.now() - crLastStrokeTimestamp) / 1000;
+
+    if (timeSinceLastStroke > maxCadenceInterval) {
+      crStallSec += 0.1;
+      isCurrentlyStalling = true;
+      crPatience = Math.max(0, crPatience - (decayRate * 2.2));
+      crSatisfaction = Math.max(0, crSatisfaction - 0.06);
+      updateOverallSatisfaction();
+    } else {
+      crStallSec = 0;
+    }
   }
 
   // Update patience UI
@@ -9636,20 +9687,32 @@ function tickCustomerRush() {
     }
   }
 
-  // Check patience loss / punishment
-  if (crPatience <= 0 && !crIsPunishing) {
-    crIsPunishing = true;
-    crInfractions++;
-    crCurrentIntensity = Math.min(99, crStartIntensity + crInfractions * crEscalationStep);
-    const intensityPill = document.getElementById("cr-intensity-pill");
-    if (intensityPill) intensityPill.textContent = `DISCIPLINE: ${crCurrentIntensity}%`;
+  // Anti-stall watchdog and punishment trigger
+  if (isCurrentlyStalling) {
+    if (crStallSec >= graceLimit || crPatience <= 0) {
+      if (!crIsPunishing) {
+        crIsPunishing = true;
+        crInfractions++;
+        crCurrentIntensity = Math.min(99, crStartIntensity + crInfractions * crEscalationStep);
+        const intensityPill = document.getElementById("cr-intensity-pill");
+        if (intensityPill) intensityPill.textContent = `DISCIPLINE: ${crCurrentIntensity}%`;
 
-    setUnifiedGameState("punish", "CUSTOMER ENRAGED!", "Customer lost patience! Provide service immediately!");
-    setCustomerRushMood("angry");
-    startPunishLoop(crCurrentIntensity, 1300);
+        const stallAction = (currentStage.demand === "hold") ? "PUSH TO TARGET DEPTH NOW!" : "PUMP TO CADENCE NOW!";
+        setUnifiedGameState("punish", "🚨 STALLED! DISCIPLINE ACTIVE!", stallAction);
+        setCustomerRushMood("angry", "DISOBEDIENT SLUT! FEEL THIS FOR STALLING!");
+        startPunishLoop(crCurrentIntensity, 1100);
 
-    const arena = document.getElementById("cr-arena");
-    if (arena) arena.classList.add("cr-shake");
+        const arena = document.getElementById("cr-arena");
+        if (arena) arena.classList.add("cr-shake");
+      }
+    } else if (crStallSec >= 0.7 && !crIsPunishing) {
+      const remSec = Math.max(0, graceLimit - crStallSec).toFixed(1);
+      const hintMsg = (currentStage.demand === "hold") ? `Push to target depth in ${remSec}s!` : `Pump to rhythm in ${remSec}s!`;
+      setUnifiedGameState("stalling", `⚠️ DON'T HESITATE (${remSec}s)!`, hintMsg);
+      if (Math.round(crStallSec * 10) % 10 === 0) {
+        playCountdownTick(Math.ceil(remSec));
+      }
+    }
   }
 }
 
@@ -9662,6 +9725,9 @@ function advanceCustomerDemand() {
     crIsPleasedCelebrating = true;
     stopPunishLoop();
     crIsPunishing = false;
+    crStallSec = 0;
+    crCurrentContinuousHoldSec = 0;
+    crLastStrokeTimestamp = Date.now();
     const arena = document.getElementById("cr-arena");
     if (arena) arena.classList.remove("cr-shake");
 
@@ -9678,6 +9744,9 @@ function advanceCustomerDemand() {
       if (currentScreen === "game-customerrush" && crCurrentCustomer) {
         crIsPleasedCelebrating = false;
         crCurrentStageIndex++;
+        crStallSec = 0;
+        crCurrentContinuousHoldSec = 0;
+        crLastStrokeTimestamp = Date.now();
         activateCustomerDemand(crCurrentStageIndex);
         setCustomerRushMood("demanding");
       }
@@ -9735,6 +9804,9 @@ function resetCustomerRushState() {
   crCurrentIntensity = crStartIntensity;
   crIsPleasedCelebrating = false;
   crIsPunishing = false;
+  crStallSec = 0;
+  crCurrentContinuousHoldSec = 0;
+  crLastStrokeTimestamp = Date.now();
   spawnCustomer(crCustomerStreak);
   crTicker = setInterval(tickCustomerRush, 100);
 }
