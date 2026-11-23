@@ -9447,7 +9447,7 @@ function activateCustomerDemand(stageIndex) {
 
 function spawnCustomer(index) {
   const customerNumPill = document.getElementById("cr-customer-num-pill");
-  const archetypePill = document.getElementById("cr-archetype-pill");
+  const archetypeSub = document.getElementById("cr-archetype-sub");
   const intensityPill = document.getElementById("cr-intensity-pill");
   const tipsPill = document.getElementById("cr-tips-pill");
   const customerName = document.getElementById("cr-customer-name");
@@ -9518,7 +9518,7 @@ function spawnCustomer(index) {
   crIsPleasedCelebrating = false;
 
   if (customerNumPill) customerNumPill.textContent = `CUSTOMER #${index}`;
-  if (archetypePill) archetypePill.textContent = chosenArchetype.title;
+  if (archetypeSub) archetypeSub.textContent = chosenArchetype.title;
   if (intensityPill) intensityPill.textContent = `DISCIPLINE: ${crCurrentIntensity}%`;
   if (tipsPill) tipsPill.textContent = `TIPS: $${crTotalTips}`;
   if (customerName) customerName.textContent = name;
