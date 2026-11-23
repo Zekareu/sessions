@@ -9186,6 +9186,7 @@ let crStartIntensity = 20;
 let crEscalationStep = 2;
 let crPatienceMode = "normal"; // relaxed, normal, strict, relentless
 let crVarietyMode = "mixed"; // mixed, holds, rhythm
+let crSessionLength = "3"; // 2, 3, 4, random
 
 // Runtime state
 let crCustomerStreak = 1;
@@ -9193,6 +9194,8 @@ let crTotalTips = 0;
 let crInfractions = 0;
 let crCurrentIntensity = 20;
 let crCurrentCustomer = null;
+let crCurrentStageIndex = 0;
+let crStageProgress = 0;
 let crSatisfaction = 0;
 let crPatience = 100;
 let crHeldSec = 0;
@@ -9214,7 +9217,8 @@ const CR_ARCHETYPES = [
       holding: ["Hold it right there. Good toy.", "Take every inch. Obey.", "Stay buried. You belong down there."],
       waiting: ["You are drifting! Get back down!", "Hesitating in front of me?! Unacceptable.", "Push deeper before I teach you a lesson!"],
       angry: ["DISOBEDIENT SLUT! FEEL THIS!", "You fail to satisfy! Suffer!", "I said DEEP! Endure your punishment!"],
-      pleased: ["Mmm, thoroughly compliant. Here is your reward.", "Good sissy. You took it well.", "Satisfied. Move to the next one."]
+      transition: ["Good warm-up, sissy. Don't think we're done—now take it deeper!", "Keep that throat open. Obey my next command.", "Mmm, acceptable. Now let's see how much further you can endure."],
+      climax: ["Mmm, right there... good girl! Thoroughly drained. Here is your reward.", "You took every single demand like a good little slut. Next in line!", "Exquisite finish. You earned your keep today."]
     }
   },
   {
@@ -9225,7 +9229,8 @@ const CR_ARCHETYPES = [
       holding: ["Yes! Keep that rapid pace going!", "Pump it fast! Don't slow down!", "That's the rhythm, sissy!"],
       waiting: ["Too slow! Speed up!", "Are you falling asleep?! Move!", "Pick up the cadence now!"],
       angry: ["TOO SLOW! TAKE THE SHOCK!", "Pathetic rhythm! Suffer!", "PUMP OR BURN!"],
-      pleased: ["Phew! Fantastic stamina, bitch. Take your tip.", "Blistering fast! Just how I like it.", "Done! You earned every penny."]
+      transition: ["Nice rhythm! But can you handle REAL speed? Faster!", "Don't slow down now, match my next tempo!", "Great start! Now pump it harder!"],
+      climax: ["Phew! Blistering finish, bitch! Take your fat tip.", "Unbelievable stamina... I'm completely finished. Next!", "That was phenomenal! Every drop. Take your pay."]
     }
   },
   {
@@ -9236,7 +9241,8 @@ const CR_ARCHETYPES = [
       holding: ["Impeccable stillness. Do not tremble.", "Maintain lock. Breathe through your nose.", "Exact submission. Acceptable."],
       waiting: ["Disgraceful lack of focus. Re-engage immediately.", "My patience is wearing thin.", "Do not test my limits, servant."],
       angry: ["INSOLENT TOY! DISCIPLINE REQUIRED!", "Zero tolerance for weakness! Endure!", "Pain is your only correction!"],
-      pleased: ["A flawless demonstration. Accept your compensation.", "Strict obedience deserves proper pay.", "You have met my standards."]
+      transition: ["Stage one passed. Do not allow your focus to waver now.", "Acceptable obedience. Prepare for the next phase.", "You survived the warm-up. Now demonstrate true mastery."],
+      climax: ["A flawless demonstration from start to finish. Accept your compensation.", "Strict obedience throughout the entire session. You have pleased me.", "Perfection achieved. Next candidate."]
     }
   },
   {
@@ -9247,7 +9253,8 @@ const CR_ARCHETYPES = [
       holding: ["Oh yes... that's worth the price.", "Mmm, delightful technique...", "Keep going, don't stop now!"],
       waiting: ["My time is money! Service me!", "Is this what I paid for?! Move!", "Hurry up, sissy!"],
       angry: ["WORST SERVICE EVER! TASTE VOLTAGE!", "I DEMAND PERFECTION! TAKE THIS!", "REFUND THROUGH PAIN!"],
-      pleased: ["Sensational! Here's a massive tip, sweetheart.", "Worth every single dollar. Splendid.", "Exquisite work. Next client!"]
+      transition: ["Mmm, delicious start... You're earning that tip. Keep going!", "Don't stop now, darling. Give me everything you've got!", "Oh yes, that's it! Now take me all the way to the finish!"],
+      climax: ["Sensational climax! Here's a massive tip, sweetheart.", "Worth every single dollar! You completely serviced me.", "Exquisite work from beginning to finish. Next client!"]
     }
   }
 ];
@@ -9344,7 +9351,7 @@ function setCustomerRushMood(mood, customQuote = null) {
       dialogueText.textContent = `"${customQuote}"`;
     } else {
       let pool = crCurrentCustomer.archetype.quotes.waiting;
-      if (mood === "pleased") pool = crCurrentCustomer.archetype.quotes.pleased;
+      if (mood === "pleased") pool = crCurrentCustomer.archetype.quotes.pleased || crCurrentCustomer.archetype.quotes.climax;
       else if (mood === "angry") pool = crCurrentCustomer.archetype.quotes.angry;
       else if (crIsAtHilt) pool = crCurrentCustomer.archetype.quotes.holding;
       const q = pool[Math.floor(Math.random() * pool.length)];
@@ -9353,97 +9360,67 @@ function setCustomerRushMood(mood, customQuote = null) {
   }
 }
 
-function spawnCustomer(index) {
-  const customerNumPill = document.getElementById("cr-customer-num-pill");
-  const archetypePill = document.getElementById("cr-archetype-pill");
-  const intensityPill = document.getElementById("cr-intensity-pill");
-  const tipsPill = document.getElementById("cr-tips-pill");
-  const customerName = document.getElementById("cr-customer-name");
-  const pleasedBanner = document.getElementById("cr-pleased-banner");
+function updateOverallSatisfaction() {
+  if (!crCurrentCustomer || !crCurrentCustomer.stages || crCurrentCustomer.stages.length === 0) return;
+  const totalStages = crCurrentCustomer.stages.length;
+  crSatisfaction = Math.min(100, ((crCurrentStageIndex + crStageProgress) / totalStages) * 100);
+  const satFill = document.getElementById("cr-satisfaction-fill");
+  const satVal = document.getElementById("cr-satisfaction-val");
+  if (satFill) satFill.style.width = `${crSatisfaction.toFixed(1)}%`;
+  if (satVal) satVal.textContent = `${Math.floor(crSatisfaction)}%`;
+}
+
+function activateCustomerDemand(stageIndex) {
+  if (!crCurrentCustomer || !crCurrentCustomer.stages[stageIndex]) return;
+  const currentStage = crCurrentCustomer.stages[stageIndex];
+  crStageProgress = 0;
+  crHeldSec = 0;
+  crCadenceBeats = 0;
+  crRepArmed = true;
+
+  const totalStages = crCurrentCustomer.stages.length;
+  const stagePill = document.getElementById("cr-stage-pill");
+  if (stagePill) {
+    if (stageIndex === totalStages - 1) {
+      stagePill.textContent = `FINAL DEMAND ${stageIndex + 1}/${totalStages}`;
+      stagePill.style.borderColor = "var(--amber-warn)";
+      stagePill.style.color = "var(--amber-warn)";
+    } else {
+      stagePill.textContent = `DEMAND ${stageIndex + 1}/${totalStages}`;
+      stagePill.style.borderColor = "var(--violet-brand)";
+      stagePill.style.color = "var(--violet-brand)";
+    }
+  }
+
   const demandType = document.getElementById("cr-demand-type");
   const demandDetail = document.getElementById("cr-demand-detail");
   const holdBox = document.getElementById("cr-hold-box");
   const cadenceBox = document.getElementById("cr-cadence-box");
   const pacerCue = document.getElementById("cr-pacer-cue");
 
-  if (pleasedBanner) pleasedBanner.classList.add("hidden");
-
-  // Pick random archetype
-  let chosenArchetype;
-  if (crVarietyMode === "holds") {
-    chosenArchetype = (index % 2 === 0) ? CR_ARCHETYPES[0] : CR_ARCHETYPES[2];
-  } else if (crVarietyMode === "rhythm") {
-    chosenArchetype = (index % 2 === 0) ? CR_ARCHETYPES[1] : CR_ARCHETYPES[3];
-  } else {
-    chosenArchetype = CR_ARCHETYPES[(index - 1) % CR_ARCHETYPES.length];
-  }
-
-  const name = CR_NAMES[(index - 1) % CR_NAMES.length];
-
-  // Decide demand (hold vs rhythm)
-  let demand = "hold";
-  if (crVarietyMode === "rhythm") {
-    demand = "rhythm";
-  } else if (crVarietyMode === "holds") {
-    demand = "hold";
-  } else {
-    demand = (index % 2 === 0) ? "rhythm" : "hold";
-  }
-
-  const targetHoldSec = Math.min(25, 6 + Math.floor(index * 1.5));
-  const cadenceBpm = Math.min(65, 36 + ((index * 5) % 28));
-  const targetBeats = Math.min(30, 8 + Math.floor(index * 2));
-  const tip = Math.floor(25 + Math.random() * 20 + index * 6);
-
-  crCurrentCustomer = {
-    index,
-    name,
-    archetype: chosenArchetype,
-    demand,
-    targetHoldSec,
-    cadenceBpm,
-    targetBeats,
-    tip
-  };
-
-  crSatisfaction = 0;
-  crPatience = 100;
-  crHeldSec = 0;
-  crCadenceBeats = 0;
-  crIsPunishing = false;
-  crIsPleasedCelebrating = false;
-  crRepArmed = true;
-
-  if (customerNumPill) customerNumPill.textContent = `CUSTOMER #${index}`;
-  if (archetypePill) archetypePill.textContent = chosenArchetype.title;
-  if (intensityPill) intensityPill.textContent = `DISCIPLINE: ${crCurrentIntensity}%`;
-  if (tipsPill) tipsPill.textContent = `TIPS: $${crTotalTips}`;
-  if (customerName) customerName.textContent = name;
-
-  if (demand === "hold") {
-    if (demandType) demandType.textContent = "DEEP HOLD";
-    if (demandDetail) demandDetail.textContent = `HOLD DEEP FOR ${targetHoldSec}s`;
+  if (currentStage.demand === "hold") {
+    if (demandType) demandType.textContent = currentStage.title || "DEEP HOLD";
+    if (demandDetail) demandDetail.textContent = `HOLD DEEP FOR ${currentStage.targetHoldSec}s`;
     if (holdBox) holdBox.classList.remove("hidden");
     if (cadenceBox) cadenceBox.classList.add("hidden");
     if (pacerCue) pacerCue.classList.add("hidden");
     const liveTimer = document.getElementById("cr-live-timer");
-    if (liveTimer) liveTimer.textContent = `0.0s / ${targetHoldSec}s`;
+    if (liveTimer) liveTimer.textContent = `0.0s / ${currentStage.targetHoldSec}s`;
     clearInterval(crPacerTicker);
     crPacerTicker = null;
   } else {
-    if (demandType) demandType.textContent = "RHYTHMIC CADENCE";
-    if (demandDetail) demandDetail.textContent = `MAINTAIN ${cadenceBpm} BPM (${targetBeats} REPS)`;
+    if (demandType) demandType.textContent = currentStage.title || "RHYTHMIC CADENCE";
+    if (demandDetail) demandDetail.textContent = `MAINTAIN ${currentStage.cadenceBpm} BPM (${currentStage.targetBeats} REPS)`;
     const targetBpmEl = document.getElementById("cr-target-bpm");
-    if (targetBpmEl) targetBpmEl.textContent = `${cadenceBpm} BPM`;
+    if (targetBpmEl) targetBpmEl.textContent = `${currentStage.cadenceBpm} BPM`;
     if (holdBox) holdBox.classList.add("hidden");
     if (cadenceBox) cadenceBox.classList.remove("hidden");
     if (pacerCue) pacerCue.classList.remove("hidden");
     const liveBpm = document.getElementById("cr-live-bpm");
-    if (liveBpm) liveBpm.textContent = `0 / ${targetBeats}`;
+    if (liveBpm) liveBpm.textContent = `0 / ${currentStage.targetBeats}`;
 
-    // Start pacer interval
     clearInterval(crPacerTicker);
-    const halfBeatMs = Math.round((60000 / cadenceBpm) / 2);
+    const halfBeatMs = Math.round((60000 / currentStage.cadenceBpm) / 2);
     crPacerPhase = false;
     crPacerTicker = setInterval(() => {
       if (crIsPleasedCelebrating) return;
@@ -9465,12 +9442,92 @@ function spawnCustomer(index) {
     }, halfBeatMs);
   }
 
-  // Update progress bars
-  const satFill = document.getElementById("cr-satisfaction-fill");
-  const satVal = document.getElementById("cr-satisfaction-val");
+  setUnifiedGameState("ready", "OBEY CURRENT DEMAND", "Satisfy the customer to build towards his finish");
+}
+
+function spawnCustomer(index) {
+  const customerNumPill = document.getElementById("cr-customer-num-pill");
+  const archetypePill = document.getElementById("cr-archetype-pill");
+  const intensityPill = document.getElementById("cr-intensity-pill");
+  const tipsPill = document.getElementById("cr-tips-pill");
+  const customerName = document.getElementById("cr-customer-name");
+  const pleasedBanner = document.getElementById("cr-pleased-banner");
+
+  if (pleasedBanner) pleasedBanner.classList.add("hidden");
+
+  // Pick archetype
+  let chosenArchetype;
+  if (crVarietyMode === "holds") {
+    chosenArchetype = (index % 2 === 0) ? CR_ARCHETYPES[0] : CR_ARCHETYPES[2];
+  } else if (crVarietyMode === "rhythm") {
+    chosenArchetype = (index % 2 === 0) ? CR_ARCHETYPES[1] : CR_ARCHETYPES[3];
+  } else {
+    chosenArchetype = CR_ARCHETYPES[(index - 1) % CR_ARCHETYPES.length];
+  }
+
+  const name = CR_NAMES[(index - 1) % CR_NAMES.length];
+
+  // Number of stages in this customer's session
+  let stageCount = 3;
+  if (crSessionLength === "2") stageCount = 2;
+  else if (crSessionLength === "4") stageCount = 4;
+  else if (crSessionLength === "random") stageCount = 2 + Math.floor(Math.random() * 3);
+
+  const stages = [];
+  for (let s = 0; s < stageCount; s++) {
+    const isFinal = (s === stageCount - 1);
+    let stageDemand = "hold";
+    if (crVarietyMode === "rhythm") {
+      stageDemand = "rhythm";
+    } else if (crVarietyMode === "holds") {
+      stageDemand = "hold";
+    } else {
+      stageDemand = ((index + s) % 2 === 0) ? "rhythm" : "hold";
+    }
+
+    let title = isFinal ? "FINAL CLIMAX DEMAND" : (s === 0 ? "WARM-UP DEMAND" : `DRILL DEMAND #${s + 1}`);
+    const targetHoldSec = Math.min(25, 5 + Math.floor(index * 1.2) + s * 3);
+    const cadenceBpm = Math.min(65, 36 + ((index * 4 + s * 6) % 26));
+    const targetBeats = Math.min(30, 8 + Math.floor(index * 1.5) + s * 4);
+
+    stages.push({
+      demand: stageDemand,
+      title,
+      isFinal,
+      targetHoldSec,
+      cadenceBpm,
+      targetBeats
+    });
+  }
+
+  const tip = Math.floor(30 + Math.random() * 25 + index * 8 + stageCount * 10);
+
+  crCurrentCustomer = {
+    index,
+    name,
+    archetype: chosenArchetype,
+    stages,
+    tip
+  };
+
+  crCurrentStageIndex = 0;
+  crStageProgress = 0;
+  crSatisfaction = 0;
+  crPatience = 100;
+  crIsPunishing = false;
+  crIsPleasedCelebrating = false;
+
+  if (customerNumPill) customerNumPill.textContent = `CUSTOMER #${index}`;
+  if (archetypePill) archetypePill.textContent = chosenArchetype.title;
+  if (intensityPill) intensityPill.textContent = `DISCIPLINE: ${crCurrentIntensity}%`;
+  if (tipsPill) tipsPill.textContent = `TIPS: $${crTotalTips}`;
+  if (customerName) customerName.textContent = name;
+
+  // Activate first demand
+  activateCustomerDemand(0);
+  updateOverallSatisfaction();
+
   const patFill = document.getElementById("cr-patience-fill");
-  if (satFill) satFill.style.width = "0%";
-  if (satVal) satVal.textContent = "0%";
   if (patFill) {
     patFill.style.width = "100%";
     patFill.style.background = "var(--emerald-active)";
@@ -9479,14 +9536,16 @@ function spawnCustomer(index) {
   const introQuotes = chosenArchetype.quotes.intro;
   const quote = introQuotes[Math.floor(Math.random() * introQuotes.length)];
   setCustomerRushMood("demanding", quote);
-  setUnifiedGameState("ready", "CUSTOMER WAITING", "Move in to satisfy customer demand");
 }
 
 function handleCustomerRushLogic(isDown) {
   crIsAtHilt = isDown;
   if (crIsPleasedCelebrating || !crCurrentCustomer) return;
 
-  if (crCurrentCustomer.demand === "hold") {
+  const currentStage = crCurrentCustomer.stages[crCurrentStageIndex];
+  if (!currentStage) return;
+
+  if (currentStage.demand === "hold") {
     if (isDown) {
       setUnifiedGameState("holding", "HOLDING FOR CUSTOMER", "Maintain full depth to satisfy customer");
       playHoldLockCue();
@@ -9501,16 +9560,17 @@ function handleCustomerRushLogic(isDown) {
     } else {
       setUnifiedGameState("pause", "MOVE IN TO SATISFY", "Push to target depth to build customer pleasure");
     }
-  } else if (crCurrentCustomer.demand === "rhythm") {
+  } else if (currentStage.demand === "rhythm") {
     if (isDown) {
       if (crRepArmed) {
         crRepArmed = false;
         crCadenceBeats++;
         playTactileClick();
-        crSatisfaction = Math.min(100, crSatisfaction + (100 / crCurrentCustomer.targetBeats));
-        crPatience = Math.min(100, crPatience + 7);
+        crStageProgress = Math.min(1, crCadenceBeats / currentStage.targetBeats);
+        updateOverallSatisfaction();
+        crPatience = Math.min(100, crPatience + 8);
         const liveBpm = document.getElementById("cr-live-bpm");
-        if (liveBpm) liveBpm.textContent = `${crCadenceBeats} / ${crCurrentCustomer.targetBeats}`;
+        if (liveBpm) liveBpm.textContent = `${crCadenceBeats} / ${currentStage.targetBeats}`;
 
         if (crIsPunishing) {
           crIsPunishing = false;
@@ -9521,8 +9581,8 @@ function handleCustomerRushLogic(isDown) {
           setCustomerRushMood("demanding", "Keep that rhythm going and don't stop!");
         }
 
-        if (crSatisfaction >= 100) {
-          completeCurrentCustomer();
+        if (crStageProgress >= 1) {
+          advanceCustomerDemand();
           return;
         }
       }
@@ -9535,39 +9595,36 @@ function handleCustomerRushLogic(isDown) {
 function tickCustomerRush() {
   if (crIsPleasedCelebrating || !crCurrentCustomer) return;
 
-  // Patience decay rate per 100ms
+  const currentStage = crCurrentCustomer.stages[crCurrentStageIndex];
+  if (!currentStage) return;
+
   let decayRate = 0.22;
   if (crPatienceMode === "relaxed") decayRate = 0.10;
   else if (crPatienceMode === "strict") decayRate = 0.38;
   else if (crPatienceMode === "relentless") decayRate = 0.60;
 
-  if (crCurrentCustomer.demand === "hold") {
+  if (currentStage.demand === "hold") {
     if (crIsAtHilt) {
       crHeldSec += 0.1;
-      crSatisfaction = Math.min(100, crSatisfaction + (100 / (crCurrentCustomer.targetHoldSec * 10)));
+      crStageProgress = Math.min(1, crHeldSec / currentStage.targetHoldSec);
+      updateOverallSatisfaction();
       crPatience = Math.min(100, crPatience + 0.35);
       const liveTimer = document.getElementById("cr-live-timer");
-      if (liveTimer) liveTimer.textContent = `${crHeldSec.toFixed(1)}s / ${crCurrentCustomer.targetHoldSec}s`;
+      if (liveTimer) liveTimer.textContent = `${crHeldSec.toFixed(1)}s / ${currentStage.targetHoldSec}s`;
 
-      if (crSatisfaction >= 100) {
-        completeCurrentCustomer();
+      if (crStageProgress >= 1) {
+        advanceCustomerDemand();
         return;
       }
     } else {
       crPatience = Math.max(0, crPatience - decayRate);
-      crSatisfaction = Math.max(0, crSatisfaction - 0.08);
     }
-  } else if (crCurrentCustomer.demand === "rhythm") {
+  } else if (currentStage.demand === "rhythm") {
     crPatience = Math.max(0, crPatience - decayRate * 0.7);
   }
 
-  // Update progress bars
-  const satFill = document.getElementById("cr-satisfaction-fill");
-  const satVal = document.getElementById("cr-satisfaction-val");
+  // Update patience UI
   const patFill = document.getElementById("cr-patience-fill");
-
-  if (satFill) satFill.style.width = `${crSatisfaction.toFixed(1)}%`;
-  if (satVal) satVal.textContent = `${Math.floor(crSatisfaction)}%`;
   if (patFill) {
     patFill.style.width = `${crPatience.toFixed(1)}%`;
     if (crPatience > 50) {
@@ -9596,7 +9653,42 @@ function tickCustomerRush() {
   }
 }
 
-function completeCurrentCustomer() {
+function advanceCustomerDemand() {
+  if (!crCurrentCustomer) return;
+  const totalStages = crCurrentCustomer.stages.length;
+
+  if (crCurrentStageIndex < totalStages - 1) {
+    // Stage completed within the current customer's session!
+    crIsPleasedCelebrating = true;
+    stopPunishLoop();
+    crIsPunishing = false;
+    const arena = document.getElementById("cr-arena");
+    if (arena) arena.classList.remove("cr-shake");
+
+    playStageClearChime();
+    crPatience = Math.min(100, crPatience + 45);
+
+    const quotes = crCurrentCustomer.archetype.quotes.transition;
+    const transQuote = quotes[Math.floor(Math.random() * quotes.length)];
+    setCustomerRushMood("pleased", transQuote);
+
+    setUnifiedGameState("can-release", `DEMAND ${crCurrentStageIndex + 1} COMPLETE!`, "Get ready for the next demand...");
+
+    setTimeout(() => {
+      if (currentScreen === "game-customerrush" && crCurrentCustomer) {
+        crIsPleasedCelebrating = false;
+        crCurrentStageIndex++;
+        activateCustomerDemand(crCurrentStageIndex);
+        setCustomerRushMood("demanding");
+      }
+    }, 1500);
+  } else {
+    // FINAL DEMAND COMPLETED -> CUSTOMER FINISH & CLIMAX!
+    completeCustomerSession();
+  }
+}
+
+function completeCustomerSession() {
   crIsPleasedCelebrating = true;
   stopPunishLoop();
   crIsPunishing = false;
@@ -9613,24 +9705,26 @@ function completeCurrentCustomer() {
   setCustomerRushMood("pleased");
 
   const pleasedBanner = document.getElementById("cr-pleased-banner");
+  const pleasedTitle = document.getElementById("cr-pleased-title");
   const pleasedTip = document.getElementById("cr-pleased-tip");
   const pleasedQuote = document.getElementById("cr-pleased-quote");
 
-  if (pleasedTip) pleasedTip.textContent = `+ $${crCurrentCustomer.tip} TIP!`;
+  if (pleasedTitle) pleasedTitle.textContent = "✨ CUSTOMER FINISHED! ✨";
+  if (pleasedTip) pleasedTip.textContent = `+ $${crCurrentCustomer.tip} FULL SESSION TIP!`;
   if (pleasedQuote) {
-    const quotes = crCurrentCustomer.archetype.quotes.pleased;
+    const quotes = crCurrentCustomer.archetype.quotes.climax;
     pleasedQuote.textContent = `"${quotes[Math.floor(Math.random() * quotes.length)]}"`;
   }
   if (pleasedBanner) pleasedBanner.classList.remove("hidden");
 
-  setUnifiedGameState("can-release", "CUSTOMER SATISFIED!", `Awarded +$${crCurrentCustomer.tip} tip`);
+  setUnifiedGameState("can-release", "CUSTOMER FINISHED!", `Session Complete &bull; +$${crCurrentCustomer.tip} Tip`);
 
   setTimeout(() => {
     if (currentScreen === "game-customerrush") {
       crCustomerStreak++;
       spawnCustomer(crCustomerStreak);
     }
-  }, 2300);
+  }, 2600);
 }
 
 function resetCustomerRushState() {
@@ -9698,6 +9792,15 @@ function initCustomerRushGame() {
       document.querySelectorAll("#cr-variety-pills .pill-select").forEach(b => b.classList.remove("active"));
       btn.classList.add("active");
       crVarietyMode = btn.getAttribute("data-cr-variety") || "mixed";
+    });
+  });
+
+  // Session length pills
+  document.querySelectorAll("#cr-session-length-pills .pill-select").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll("#cr-session-length-pills .pill-select").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      crSessionLength = btn.getAttribute("data-cr-length") || "3";
     });
   });
 
